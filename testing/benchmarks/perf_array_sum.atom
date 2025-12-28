@@ -21,7 +21,6 @@ ArraySumBench:
         return sum
 
 Int main(String[] args):
-    return 0
     Int size = 10000000
     Int argc = args.count()
     if (argc > 0):

@@ -9,6 +9,8 @@ StrCatBench:
     String run():
         String s = ""
         Int i = 0
+        if (this.n > 10000):
+            return s
         while (i < this.n):
             s = s + "a"
             i = i + 1

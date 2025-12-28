@@ -8,13 +8,3 @@
 testing/functions/import_base_utils.atom
 testing/functions/import_echo_module.atom
 testing/functions/import_math_module.atom
-
-# -------
-# Tests that are way too slow
-#
-testing/benchmarks/perf_fib.atom
-
-# -------
-# FIXME: Compiler error
-#
-#testing/functions/stdin_echo.atom

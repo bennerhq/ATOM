@@ -7,12 +7,12 @@ MulBench:
         this.wrap = wrap
 
     Int step(Int acc, Int i):
-        acc = acc * 3
-        acc = acc + i
+        acc = toInt32(acc * 3)
+        acc = toInt32(acc + i)
         if (acc < 0):
-            acc = acc + wrap
+            acc = toInt32(acc + wrap)
         if (acc > wrap):
-            acc = acc - wrap
+            acc = toInt32(acc - wrap)
         return acc
 
     Int run():
@@ -22,6 +22,15 @@ MulBench:
             acc = this.step(acc, i)
             i = i + 1
         return acc
+
+Int toInt32(Int v):
+    Int mod = 4294967296
+    v = v % mod
+    if (v < 0):
+        v = v + mod
+    if (v > 2147483647):
+        v = v - mod
+    return v
 
 Int main():
     Int iterations = 100000000
