@@ -1,12 +1,12 @@
-# Atom Project
+# ATOM Compiler
+
+This repository contains a C++17 compiler for the ATOM programming language. The compiler emits WebAssembly Text (WAT) and targets WASI. The project includes the language front-end (lexer, parser, type checking), code generation, and a comprehensive test/benchmark suite.
+
+## AI generated
 
 **All code in this repository has been generated, refactored, corrected, or documented using OpenAI's coding Large Language Model (LLM) tool codex.**
 
-## Project Overview
-
-This project is an experimental compiler, written in C++, for the Atom programming language. Atom is described in detail in this document. The compiler compiles ATOM code to WebAssembly (WASM) and WASI. Atom is a minimal, imperative language designed for clarity, performance, and extensibility. The codebase includes a full parser, AST, code generator, and a suite of benchmarks and tests.
-
-## Fast Start
+## Build and Test
 
 ```bash
 make clean
@@ -15,142 +15,199 @@ make all
 ./test_benchmarks.sh
 ```
 
-## Directory Structure and Contents
+### Tooling
 
-- **compiler/** — Contains all C++17 source code for the Atom compiler:
-    - `lexer.cpp`, `lexer.h`: Tokenizer for Atom source code. Handles indentation state.
-    - `parser.cpp`, `parser.h`: Parses tokens into an abstract syntax tree (AST) using Atom's BNF grammar.
-    - `ast.cpp`, `ast.h`: Defines AST node structures, symbol tables, and semantic analysis logic.
-    - `codegen.cpp`, `codegen.h`: Emits WebAssembly (WASM) and WebAssembly Text (WAT) code from the AST. Handles memory layout and ARC.
-    - Other files: Utilities, error handling, and support code for compilation.
+- **Compiler:** C++17 (g++ or clang++)
+- **WASM toolchain:** `wat2wasm` (from WABT)
+- **Runtime:** `wasmtime`
 
-- **build/** — Stores generated output files:
-    - `.wasm` files: Compiled WebAssembly binaries for Atom programs.
-    - `.wat` files: Human-readable WebAssembly Text format for inspection and debugging.
+## Usage
 
-- **testing/benchmarks/** — Contains benchmark programs for performance and correctness testing:
-    - `.atom` files: Atom language benchmark sources.
-    - `.c` files: Equivalent C benchmarks for comparison.
+```bash
+./atomc path/to/program.atom -o output.wat
+wat2wasm output.wat -o output.wasm
+wasmtime output.wasm
+```
 
-- **testing/stdin/** — Contains input files for automated tests and benchmarks:
-    - `.in` files: Provide standard input data for Atom and C programs during test execution.
+For quick iteration on a single file with expected output comparison:
 
-- **testing/stdout/** — Stores stdout output from running benchmarks and tests:
-    - `.out` files: Output from running Atom and C benchmarks, named to match the source file.
+```bash
+./debug.sh path/to/program.atom [args...]
+```
 
-- `test_benchmarks.sh`, `test_functions.sh` — Shell scripts for automated testing.
-- `Makefile` — Build automation.
-- `debug.sh` — Compiles the compiler, runs the atomc compiler, and executes code to compare expected output.
+## Language Summary
 
-## Example: Atom Code
+### Syntax
+
+- Indentation-based blocks, Python-style.
+- Block headers end with a colon (`:`).
+- Conditions for `if` and `while` use parentheses.
+- Comments: `#` or `//` to end of line.
+
+### Types
+
+- `Int`: 64-bit signed integer
+- `Real`: 64-bit floating point
+- `Bool`: `true` / `false`
+- `Char`: single byte character
+- `String`: UTF-8 byte string
+- `Array[T]` or `T[]`: array type
+- `Void`: no return value
+- `null`: null literal for reference types
+
+### Variables and Functions
+
+All variables are declared with an explicit type.
 
 ```atom
-# Regression: nested constructor inside init should work
-
-Point:
-        Int x
-        Int y
-
-        init(Int x, Int y):
-                this.x = x
-                this.y = y
-
-Container:
-        Point p
-
-        init(Int x, Int y):
-                this.p = Point.new(x, y)
-
-        Int px():
-                return this.p.x
-
-        Int py():
-                return this.p.y
+Int add(Int a, Int b):
+    return a + b
 
 Int main():
-        Container c = Container.new(7, 9)
-        "px=%i".println(c.px())
-        "py=%i".println(c.py())
-        return 0
+    Int result = add(2, 3)
+    "result=%i".println(result)
+    return 0
 ```
 
-
-# ATOM Programming Language Specification
-
-
-## Core Concepts
-
-- **Static Typing:** Mandatory type annotations with inference support.
-- **Reference Counting:** Automatic memory management via ARC (Automatic Reference Counting).
-- **Modules:** Import external modules using object-oriented import syntax.
-- **Null Safety:** Explicit null handling.
-- **Inner Extension Points:** `inner` keyword allows parent methods to defer execution to subclasses (inspired by Beta).
-
-## Type System
-
-**Primitive Types:**
-- `Int` - 64-bit integer
-- `Char` - Single character (single UTF-8 codepoint)
-- `Void` - Represents absence of a return value
-- `Real` - 64-bit floating point
-- `Bool` - Boolean (true/false)
-- `Array[T]` - Generic array type containing elements of type T (aliased as `T[]`)
-- `String` - UTF-8 strings (double-quoted literals)
-
-## Syntax
-
-### Imports
+Inline function bodies are supported:
 
 ```atom
-import Math
-import Graphics as G
+Int add(Int a, Int b) = a + b
 ```
 
-### Structures and Inheritance
+### Structures, Inheritance, and Methods
+
+Structures define fields and methods. Single inheritance is supported. Method calls are dynamically dispatched.
 
 ```atom
 Animal:
-        String name
-        
-        init(String name):
-                this.name = name
-        
-        Void speak():
-                "Animal speaks".println()
+    String name
+
+    init(String name):
+        this.name = name
+
+    Void speak():
+        "...".println()
 
 Dog: Animal:
-        Int age
-        
-        init(String name, Int age):
-                this.name = name
-                this.age = age
-        
-        Void speak():
-                "Woof!".println()
+    Int age
+
+    init(String name, Int age):
+        this.name = name
+        this.age = age
+
+    Void speak():
+        "Woof".println()
 ```
 
-### Inner Extension Points (Beta)
+### Inner Extension Points (Beta-style)
+
+`inner` is a statement used inside a base-class method to call the next override in the class hierarchy (the most-derived implementation relative to the current class).
 
 ```atom
-Logger:
-        Void log(String message):
-                "Log: ".print()
-                message.println()
+Base:
+    Void log(String msg):
+        "[base]".print()
+        inner
 
-DetailedLogger: Logger:
-        Void log(String message):
-                inner  # Executes parent (Logger) logic here? No, strictly extends logic.
-                # In Beta, 'inner' in the PARENT calls the CHILD. 
-                # For Atom, we treat 'inner' as a specific extension point mechanism.
+Child: Base:
+    Void log(String msg):
+        msg.println()
 ```
 
-### Variables and Fields
+### Arrays
+
+Arrays are heap-allocated and store 64-bit slots. Reference values are stored as pointers.
+
+Supported methods:
+
+- `size()` / `count()` -> `Int`
+- `push(value)`
+- `pop()`
+- `get(i)`
+- `set(i, value)`
+- `getInt(i)`
+- `getString(i)`
+
+Out-of-bounds access returns:
+- `-1` for numeric arrays (`Int`, `Real`)
+- `null` for reference arrays
+
+### Strings
+
+- Double-quoted literals with escapes: `\n`, `\t`, `\r`, `\"`, `\\`
+- Concatenation with `+`
+- `length()` returns byte length
+- `print()` / `println()` output the string
+
+Formatted printing supports:
+- `%i` (Int)
+- `%r` (Real)
+- `%s` (String)
+- `%b` (Bool)
+
+Unsupported format specifiers are printed literally.
+
+### Imports
+
+Imports are parsed and used to include other source files:
 
 ```atom
-Int x = 42
-String msg = "hello"
-Array[Int] numbers = [1, 2, 3] # Array literal
+import Math from "./math.atom"
+import Utils as U from "./utils.atom"
 ```
+
+Notes:
+- Only `from "path"` triggers a file import.
+- Paths without `/` are resolved relative to the importing file.
+- `as` aliases are parsed but not currently used during compilation.
+
+### Entry Point and Arguments
+
+The compiler looks for `Int main(...)` and exports `_start` for WASI.
+
+Two supported signatures:
+
+```atom
+Int main():
+    return 0
+
+Int main(String[] args):
+    "argc=%i".println(args.count())
+    return 0
+```
+
+`args` are populated from:
+- **stdin tokens** when stdin is not a TTY (whitespace split), otherwise
+- **WASI argv** (excluding argv[0]).
+
+## Implementation Notes
+
+- **Memory layout (class instances):**
+  - offset `0`: class id (`i32`)
+  - offset `8`: reference count (`i64`, not used for reclamation)
+  - offset `16+`: fields (8-byte aligned)
+- **Strings:**
+  - offset `16`: length (`i64`)
+  - offset `24`: data pointer (`i32`)
+- **Arrays:**
+  - offset `16`: length (`i64`)
+  - offset `24`: capacity (`i64`)
+  - offset `32`: data pointer (`i32`)
+- **Dynamic dispatch:** method calls use a vtable table stored in linear memory and `call_indirect`.
+- **Inner dispatch:** `inner` uses a separate table to resolve the next override at runtime.
+- **Reference counting helpers** exist (`incref`/`decref`), but the compiler does not currently emit retain/release or free memory.
+
+## Directory Structure
+
+- `compiler/` — C++17 compiler sources
+- `build/` — build artifacts (`.o`)
+- `testing/functions/` — functional tests (`.atom`)
+- `testing/benchmarks/` — benchmarks (`.atom` and `.c`)
+- `testing/stdin/` — stdin fixtures (`.in`)
+- `testing/stdout/` — expected outputs (`.out`)
+- `test_functions.sh`, `test_benchmarks.sh` — test runners
+- `debug.sh` — compile+run helper for a single file
 
 ## Formal Grammar (BNF)
 
@@ -242,115 +299,3 @@ CHAR               ::= "'(\\.|[^'\\\\])'"
 IDENTIFIER         ::= [a-zA-Z_][a-zA-Z0-9_]*
 COMMENT            ::= "#" (~NEWLINE)* | "//" (~NEWLINE)*
 ```
-
-## Example Programs
-
-### Standalone Functions
-
-```atom
-Int add(Int a, Int b):
-        return a + b
-
-Int main():
-        Int result = add(2, 3)
-        "%i".println(result)
-        return 0
-```
-
-### Inheritance and Functions
-
-```atom
-Shape:
-        String color
-        
-        init(String color):
-                this.color = color
-        
-        Real getArea():
-                return 0.0
-
-Circle: Shape:
-        Real radius
-        
-        init(String color, Real radius):
-                this.color = color
-                this.radius = radius
-        
-        Real getArea():
-                return radius * radius * 3.14159
-
-Int main(String[] args):
-        Circle c = Circle.new("Red", 5.0)
-        "Circle area: %.2f".println(c.getArea())
-```
-
-### Control Flow and Arrays
-
-```atom
-Int main(String[] args):
-        Array[Int] arr = []
-        Int size = 5
-        Int j = 0
-        while (j < size):
-                arr.push((j + 1) * 10)
-                j = j + 1
-        return 0
-```
-
-## Compiler Implementation Checklist
-
-The following system constraints must be followed when generating the C++ compiler code:
-
-### 1. Lexer & Parser Logic
-
-- **Indentation Handling:** The Lexer must maintain a state stack to track indentation levels. Emit INDENT tokens when whitespace increases and DEDENT tokens when it decreases.
-- **Array Syntax:** The Parser must normalize `String[]` (Java-style) and `Array[String]` (Generic-style) into the same internal Type representation (e.g., `Type::Array(Type::String)`).
-- **Syntactic Sugar:**
-    - Convert `Int add(a,b) = a+b` into a standard function node with a ReturnStatement containing the expression.
-    - Treat `init` as a standard method in the AST, but flag it with `is_constructor = true`.
-
-### 2. Semantic Analysis
-
-- **Symbol Tables:** Implement a scoped symbol table. Scopes are: Global → Class → Method → Block.
-- **Type Inference:**
-    - For `var x = 5`, infer type `Int`.
-    - For `var obj = Container.new()`, infer type `Container`.
-- **The `this` Pointer:** In any non-static method, implicitly add `this` as the first argument with type `Pointer<CurrentStruct>`.
-
-### 3. Memory Management (ARC Strategy)
-
-- **Object Header:** Every heap object must have a header containing:
-    - V-Table Pointer (for dynamic dispatch).
-    - Reference Count (64-bit integer).
-- **Retain/Release Injection:**
-    - Assignment (`a = b`): Emit `decref(a)`, then `a = b`, then `incref(b)`.
-    - Scope Exit: At the end of every block (DEDENT), emit `decref()` for every local variable declared in that scope.
-    - Return Values: If returning an object, `incref` it before the stack frame is destroyed so it survives to the caller.
-
-### 4. Code Generation (WASM)
-
-- **WASM Linear Memory Layout:**
-    - Offset 0: V-Table Index.
-    - Offset 8: Reference Count.
-    - Offset 16+: Instance fields (aligned to 8 bytes).
-- **V-Tables (Virtual Method Dispatch):**
-    - Generate a table section in WASM.
-    - Assign every method a unique index in the table.
-    - Method calls `obj.method()` must load the V-Table index from `obj`, look up the function index, and use `call_indirect`.
-- **Static Methods (`.new`):**
-    - `ClassName.new(...)` should allocate memory (malloc size of struct), call `init(...)`, and return the pointer.
-- **String Literals:**
-    - Store string literals in the WASM data section.
-- **Entry Point:**
-    - The compiler must locate `Int main(...)`.
-    - Export a function named `_start` (for WASI) that calls `main`.
-
-## Supporting language features
- - Keyword "Import": Paths resolve relative to the importing file. the format is: import <structure> from "<file path>"
-  - inner semantics is Beta-style
-  - Arrays: for out‑of‑bounds access return -1 or null
-  - Built‑ins:
-      - Array: size(), count(), push(x), pop(), get(i), set(i, v)
-      - String: length(), print(), println(), +, ==, !=
-      - String[] args: count(), getString(i), getInt(i)
-  - Formatting strings for print/println must support: %i %r %s %b
