@@ -385,6 +385,43 @@ struct Codegen {
         return std::nullopt;
     }
 
+    bool is_trivial_getter(const MethodDef &method, const std::string &class_name, std::string &field_name) const {
+        if (!method.params.empty()) return false;
+        if (method.body.size() != 1) return false;
+        auto ret = dynamic_cast<ReturnStmt *>(method.body[0].get());
+        if (!ret || !ret->value) return false;
+        if (auto ident = dynamic_cast<Identifier *>(ret->value.get())) {
+            if (ctx.layouts.at(class_name).field_offsets.count(ident->name)) {
+                field_name = ident->name;
+                return true;
+            }
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(ret->value.get())) {
+            bool is_this = dynamic_cast<ThisExpr *>(mem->object.get()) != nullptr;
+            if (!is_this) {
+                if (auto obj_ident = dynamic_cast<Identifier *>(mem->object.get())) {
+                    is_this = obj_ident->name == "this";
+                }
+            }
+            if (is_this && ctx.layouts.at(class_name).field_offsets.count(mem->member)) {
+                field_name = mem->member;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::unordered_set<std::string> &inline_method_allowlist() const {
+        static const std::unordered_set<std::string> names = {
+            "getX", "getY", "getValue", "getCount", "getSize",
+            "getWidth", "getHeight", "getBalance", "getAge",
+            "getState", "getHealth", "getScore", "getRows",
+            "getCols", "getName", "getTitle", "getDepartment",
+            "getStudentId", "getIndent"
+        };
+        return names;
+    }
+
     std::string next_label(const std::string &base) {
         return base + std::to_string(label_id++);
     }
@@ -2036,6 +2073,26 @@ struct Codegen {
             emit.line("i64.const " + std::to_string(static_cast<int>(lit->value)));
             return;
         }
+        if (auto unary = dynamic_cast<UnaryExpr *>(expr)) {
+            if (auto lit = dynamic_cast<IntLiteral *>(unary->expr.get())) {
+                if (unary->op == "-") {
+                    emit.line("i64.const " + std::to_string(-lit->value));
+                    return;
+                }
+            }
+            if (auto lit = dynamic_cast<RealLiteral *>(unary->expr.get())) {
+                if (unary->op == "-") {
+                    emit.line("f64.const " + std::to_string(-lit->value));
+                    return;
+                }
+            }
+            if (auto lit = dynamic_cast<BoolLiteral *>(unary->expr.get())) {
+                if (unary->op == "!") {
+                    emit.line(std::string("i64.const ") + (lit->value ? "0" : "1"));
+                    return;
+                }
+            }
+        }
         if (dynamic_cast<NullLiteral *>(expr)) {
             emit.line("i32.const 0");
             return;
@@ -2069,6 +2126,43 @@ struct Codegen {
             return;
         }
         if (auto bin = dynamic_cast<BinaryExpr *>(expr)) {
+            if (auto l = dynamic_cast<IntLiteral *>(bin->left.get())) {
+                if (auto r = dynamic_cast<IntLiteral *>(bin->right.get())) {
+                    if (bin->op == "+") { emit.line("i64.const " + std::to_string(l->value + r->value)); return; }
+                    if (bin->op == "-") { emit.line("i64.const " + std::to_string(l->value - r->value)); return; }
+                    if (bin->op == "*") { emit.line("i64.const " + std::to_string(l->value * r->value)); return; }
+                    if (bin->op == "/" && r->value != 0) { emit.line("i64.const " + std::to_string(l->value / r->value)); return; }
+                    if (bin->op == "%" && r->value != 0) { emit.line("i64.const " + std::to_string(l->value % r->value)); return; }
+                    if (bin->op == "==") { emit.line(std::string("i64.const ") + (l->value == r->value ? "1" : "0")); return; }
+                    if (bin->op == "!=") { emit.line(std::string("i64.const ") + (l->value != r->value ? "1" : "0")); return; }
+                    if (bin->op == "<") { emit.line(std::string("i64.const ") + (l->value < r->value ? "1" : "0")); return; }
+                    if (bin->op == "<=") { emit.line(std::string("i64.const ") + (l->value <= r->value ? "1" : "0")); return; }
+                    if (bin->op == ">") { emit.line(std::string("i64.const ") + (l->value > r->value ? "1" : "0")); return; }
+                    if (bin->op == ">=") { emit.line(std::string("i64.const ") + (l->value >= r->value ? "1" : "0")); return; }
+                }
+            }
+            if (auto l = dynamic_cast<RealLiteral *>(bin->left.get())) {
+                if (auto r = dynamic_cast<RealLiteral *>(bin->right.get())) {
+                    if (bin->op == "+") { emit.line("f64.const " + std::to_string(l->value + r->value)); return; }
+                    if (bin->op == "-") { emit.line("f64.const " + std::to_string(l->value - r->value)); return; }
+                    if (bin->op == "*") { emit.line("f64.const " + std::to_string(l->value * r->value)); return; }
+                    if (bin->op == "/" && r->value != 0.0) { emit.line("f64.const " + std::to_string(l->value / r->value)); return; }
+                    if (bin->op == "==") { emit.line(std::string("i64.const ") + (l->value == r->value ? "1" : "0")); return; }
+                    if (bin->op == "!=") { emit.line(std::string("i64.const ") + (l->value != r->value ? "1" : "0")); return; }
+                    if (bin->op == "<") { emit.line(std::string("i64.const ") + (l->value < r->value ? "1" : "0")); return; }
+                    if (bin->op == "<=") { emit.line(std::string("i64.const ") + (l->value <= r->value ? "1" : "0")); return; }
+                    if (bin->op == ">") { emit.line(std::string("i64.const ") + (l->value > r->value ? "1" : "0")); return; }
+                    if (bin->op == ">=") { emit.line(std::string("i64.const ") + (l->value >= r->value ? "1" : "0")); return; }
+                }
+            }
+            if (auto l = dynamic_cast<BoolLiteral *>(bin->left.get())) {
+                if (auto r = dynamic_cast<BoolLiteral *>(bin->right.get())) {
+                    if (bin->op == "&&") { emit.line(std::string("i64.const ") + ((l->value && r->value) ? "1" : "0")); return; }
+                    if (bin->op == "||") { emit.line(std::string("i64.const ") + ((l->value || r->value) ? "1" : "0")); return; }
+                    if (bin->op == "==") { emit.line(std::string("i64.const ") + ((l->value == r->value) ? "1" : "0")); return; }
+                    if (bin->op == "!=") { emit.line(std::string("i64.const ") + ((l->value != r->value) ? "1" : "0")); return; }
+                }
+            }
             if (bin->op == "&&" || bin->op == "||") {
                 emit_expr(bin->left.get(), fctx, bin->left->type);
                 emit.line("i64.const 0");
@@ -2283,9 +2377,26 @@ struct Codegen {
                     auto &layout = ctx.layouts[obj_type->name];
                     auto it = layout.methods.find(callee_mem->member);
                     if (it != layout.methods.end()) {
+                        std::string field_name;
+                        bool no_overrides = !method_overridden_in_descendants(obj_type->name, callee_mem->member);
+                        const auto &allowlist = inline_method_allowlist();
+                        if (no_overrides &&
+                            allowlist.count(callee_mem->member) &&
+                            is_trivial_getter(*it->second.def, obj_type->name, field_name)) {
+                            for (auto &arg : call->args) {
+                                emit_expr(arg.get(), fctx, arg->type);
+                                emit.line("drop");
+                            }
+                            emit.line("local.get " + fctx.temp_i32);
+                            int offset = ctx.layouts[obj_type->name].field_offsets[field_name];
+                            emit.line("i32.const " + std::to_string(offset));
+                            emit.line("i32.add");
+                            emit_load(it->second.def->return_type);
+                            return;
+                        }
                         emit.line("local.get " + fctx.temp_i32);
                         for (auto &arg : call->args) emit_expr(arg.get(), fctx, arg->type);
-                        if (!method_overridden_in_descendants(obj_type->name, callee_mem->member)) {
+                        if (no_overrides) {
                             emit.line("call $" + it->second.owner + "$" + callee_mem->member);
                         } else {
                             emit_virtual_call(it->second, fctx);
