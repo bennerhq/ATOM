@@ -762,145 +762,141 @@ struct Codegen {
         emit.line("local.get $len");
         emit.close(")");
 
-        {
-            int base = emit.indent;
-            emit.indent = 0;
-            emit.out
-                << "  (func $split_ws (param $ptr i32) (param $len i32) (result i32)\n"
-                << "    (local $i i32)\n"
-                << "    (local $count i32)\n"
-                << "    (local $in_token i32)\n"
-                << "    (local $start i32)\n"
-                << "    (local $arr i32)\n"
-                << "    (local $idx i32)\n"
-                << "    (local $tok_len i32)\n"
-                << "    (local $str i32)\n"
-                << "    block $count_done\n"
-                << "      loop $count_loop\n"
-                << "        local.get $i\n"
-                << "        local.get $len\n"
-                << "        i32.ge_u\n"
-                << "        br_if $count_done\n"
-                << "        local.get $ptr\n"
-                << "        local.get $i\n"
-                << "        i32.add\n"
-                << "        i32.load8_u\n"
-                << "        i32.const 32\n"
-                << "        i32.gt_u\n"
-                << "        if\n"
-                << "          local.get $in_token\n"
-                << "          i32.eqz\n"
-                << "          if\n"
-                << "            local.get $count\n"
-                << "            i32.const 1\n"
-                << "            i32.add\n"
-                << "            local.set $count\n"
-                << "            i32.const 1\n"
-                << "            local.set $in_token\n"
-                << "          end\n"
-                << "        else\n"
-                << "          i32.const 0\n"
-                << "          local.set $in_token\n"
-                << "        end\n"
-                << "        local.get $i\n"
-                << "        i32.const 1\n"
-                << "        i32.add\n"
-                << "        local.set $i\n"
-                << "        br $count_loop\n"
-                << "      end\n"
-                << "    end\n"
-                << "    local.get $count\n"
-                << "    i64.extend_i32_u\n"
-                << "    call $array_new\n"
-                << "    local.set $arr\n"
-                << "    i32.const 0\n"
-                << "    local.set $i\n"
-                << "    i32.const 0\n"
-                << "    local.set $idx\n"
-                << "    i32.const 0\n"
-                << "    local.set $in_token\n"
-                << "    block $fill_done\n"
-                << "      loop $fill_loop\n"
-                << "        local.get $i\n"
-                << "        local.get $len\n"
-                << "        i32.ge_u\n"
-                << "        br_if $fill_done\n"
-                << "        local.get $ptr\n"
-                << "        local.get $i\n"
-                << "        i32.add\n"
-                << "        i32.load8_u\n"
-                << "        i32.const 32\n"
-                << "        i32.gt_u\n"
-                << "        if\n"
-                << "          local.get $in_token\n"
-                << "          i32.eqz\n"
-                << "          if\n"
-                << "            local.get $i\n"
-                << "            local.set $start\n"
-                << "            i32.const 1\n"
-                << "            local.set $in_token\n"
-                << "          end\n"
-                << "        else\n"
-                << "          local.get $in_token\n"
-                << "          i32.eqz\n"
-                << "          if\n"
-                << "          else\n"
-                << "            local.get $i\n"
-                << "            local.get $start\n"
-                << "            i32.sub\n"
-                << "            local.set $tok_len\n"
-                << "            local.get $ptr\n"
-                << "            local.get $start\n"
-                << "            i32.add\n"
-                << "            local.get $tok_len\n"
-                << "            call $string_new\n"
-                << "            local.set $str\n"
-                << "            local.get $arr\n"
-                << "            local.get $idx\n"
-                << "            i64.extend_i32_u\n"
-                << "            local.get $str\n"
-                << "            i64.extend_i32_u\n"
-                << "            call $array_set_i64\n"
-                << "            local.get $idx\n"
-                << "            i32.const 1\n"
-                << "            i32.add\n"
-                << "            local.set $idx\n"
-                << "            i32.const 0\n"
-                << "            local.set $in_token\n"
-                << "          end\n"
-                << "        end\n"
-                << "        local.get $i\n"
-                << "        i32.const 1\n"
-                << "        i32.add\n"
-                << "        local.set $i\n"
-                << "        br $fill_loop\n"
-                << "      end\n"
-                << "    end\n"
-                << "    local.get $in_token\n"
-                << "    i32.eqz\n"
-                << "    if\n"
-                << "    else\n"
-                << "      local.get $len\n"
-                << "      local.get $start\n"
-                << "      i32.sub\n"
-                << "      local.set $tok_len\n"
-                << "      local.get $ptr\n"
-                << "      local.get $start\n"
-                << "      i32.add\n"
-                << "      local.get $tok_len\n"
-                << "      call $string_new\n"
-                << "      local.set $str\n"
-                << "      local.get $arr\n"
-                << "      local.get $idx\n"
-                << "      i64.extend_i32_u\n"
-                << "      local.get $str\n"
-                << "      i64.extend_i32_u\n"
-                << "      call $array_set_i64\n"
-                << "    end\n"
-                << "    local.get $arr\n"
-                << "  )\n";
-            emit.indent = base;
-        }
+        emit.open("(func $split_ws (param $ptr i32) (param $len i32) (result i32)");
+        emit.line("(local $i i32)");
+        emit.line("(local $count i32)");
+        emit.line("(local $in_token i32)");
+        emit.line("(local $start i32)");
+        emit.line("(local $arr i32)");
+        emit.line("(local $idx i32)");
+        emit.line("(local $tok_len i32)");
+        emit.line("(local $str i32)");
+        emit.open("block $count_done");
+        emit.open("loop $count_loop");
+        emit.line("local.get $i");
+        emit.line("local.get $len");
+        emit.line("i32.ge_u");
+        emit.line("br_if $count_done");
+        emit.line("local.get $ptr");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("i32.const 32");
+        emit.line("i32.gt_u");
+        emit.open("if");
+        emit.line("local.get $in_token");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("local.get $count");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $count");
+        emit.line("i32.const 1");
+        emit.line("local.set $in_token");
+        emit.close("end");
+        emit.close("else");
+        emit.line("i32.const 0");
+        emit.line("local.set $in_token");
+        emit.close("end");
+        emit.line("local.get $i");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $i");
+        emit.line("br $count_loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $count");
+        emit.line("i64.extend_i32_u");
+        emit.line("call $array_new");
+        emit.line("local.set $arr");
+        emit.line("i32.const 0");
+        emit.line("local.set $i");
+        emit.line("i32.const 0");
+        emit.line("local.set $idx");
+        emit.line("i32.const 0");
+        emit.line("local.set $in_token");
+        emit.open("block $fill_done");
+        emit.open("loop $fill_loop");
+        emit.line("local.get $i");
+        emit.line("local.get $len");
+        emit.line("i32.ge_u");
+        emit.line("br_if $fill_done");
+        emit.line("local.get $ptr");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("i32.const 32");
+        emit.line("i32.gt_u");
+        emit.open("if");
+        emit.line("local.get $in_token");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("local.get $i");
+        emit.line("local.set $start");
+        emit.line("i32.const 1");
+        emit.line("local.set $in_token");
+        emit.close("end");
+        emit.close("else");
+        emit.line("local.get $in_token");
+        emit.line("i32.eqz");
+        emit.open("if");
+        // do nothing
+        emit.close("else");
+        emit.line("local.get $i");
+        emit.line("local.get $start");
+        emit.line("i32.sub");
+        emit.line("local.set $tok_len");
+        emit.line("local.get $ptr");
+        emit.line("local.get $start");
+        emit.line("i32.add");
+        emit.line("local.get $tok_len");
+        emit.line("call $string_new");
+        emit.line("local.set $str");
+        emit.line("local.get $arr");
+        emit.line("local.get $idx");
+        emit.line("i64.extend_i32_u");
+        emit.line("local.get $str");
+        emit.line("i64.extend_i32_u");
+        emit.line("call $array_set_i64");
+        emit.line("local.get $idx");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $idx");
+        emit.line("i32.const 0");
+        emit.line("local.set $in_token");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $i");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $i");
+        emit.line("br $fill_loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $in_token");
+        emit.line("i32.eqz");
+        emit.open("if");
+        // do nothing
+        emit.close("else");
+        emit.line("local.get $len");
+        emit.line("local.get $start");
+        emit.line("i32.sub");
+        emit.line("local.set $tok_len");
+        emit.line("local.get $ptr");
+        emit.line("local.get $start");
+        emit.line("i32.add");
+        emit.line("local.get $tok_len");
+        emit.line("call $string_new");
+        emit.line("local.set $str");
+        emit.line("local.get $arr");
+        emit.line("local.get $idx");
+        emit.line("i64.extend_i32_u");
+        emit.line("local.get $str");
+        emit.line("i64.extend_i32_u");
+        emit.line("call $array_set_i64");
+        emit.close("end");
+        emit.line("local.get $arr");
+        emit.close(")");
 
         emit.open("(func $write_buf (param $ptr i32) (param $len i32)");
         emit.line("global.get $scratch");
