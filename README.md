@@ -1,6 +1,6 @@
 # Atom Project
 
-**All code in this repository is written by OpemAI's coding Large Language Models (LLM) tool, i.e,, code generation, refactoring, error corretion and documentation.**
+**All code in this repository has been generated, refactored, corrected, or documented using OpenAI's coding Large Language Model (LLM) tool codex.**
 
 ## Project Overview
 
@@ -74,24 +74,12 @@ Int main():
         return 0
 ```
 
-## Development Notes
-
-- All code is written and maintained in Visual Studio Code, leveraging LLMs for code generation, review, and documentation.
-- The Atom language and compiler are experimental and subject to change.
-- Contributions, bug reports, and suggestions are welcome.
-
----
 
 # ATOM Programming Language Specification
 
-## Overview
-
-ATOM is a pure object-oriented programming language where everything is an object. It features static typing with type inference, single inheritance, message passing, and compiles directly to WebAssembly.
 
 ## Core Concepts
 
-- **Pure OOP:** Every value (including primitives) is an object.
-- **Single Inheritance:** Structures inherit from parent structures with function overriding.
 - **Static Typing:** Mandatory type annotations with inference support.
 - **Reference Counting:** Automatic memory management via ARC (Automatic Reference Counting).
 - **Modules:** Import external modules using object-oriented import syntax.
@@ -260,10 +248,12 @@ COMMENT            ::= "#" (~NEWLINE)* | "//" (~NEWLINE)*
 ### Standalone Functions
 
 ```atom
-Int add(Int a, Int b) = a + b
+Int add(Int a, Int b):
+        return a + b
 
 Int main():
         Int result = add(2, 3)
+        "%i".println(result)
         return 0
 ```
 
@@ -325,7 +315,7 @@ The following system constraints must be followed when generating the C++ compil
 - **Type Inference:**
     - For `var x = 5`, infer type `Int`.
     - For `var obj = Container.new()`, infer type `Container`.
-- **The `this` Pointer:** In any non-static method, implicitly add `this` as the first argument with type `Pointer<CurrentClass>`.
+- **The `this` Pointer:** In any non-static method, implicitly add `this` as the first argument with type `Pointer<CurrentStruct>`.
 
 ### 3. Memory Management (ARC Strategy)
 
@@ -356,12 +346,11 @@ The following system constraints must be followed when generating the C++ compil
     - Export a function named `_start` (for WASI) that calls `main`.
 
 ## Supporting language features
- - Imports: Paths resolve relative to the importing file. the format is: import <structure> from "<file path>"
+ - Keyword "Import": Paths resolve relative to the importing file. the format is: import <structure> from "<file path>"
   - inner semantics is Beta-style
   - Arrays: for out‑of‑bounds access return -1 or null
   - Built‑ins:
       - Array: size(), count(), push(x), pop(), get(i), set(i, v)
       - String: length(), print(), println(), +, ==, !=
       - String[] args: count(), getString(i), getInt(i)
-  - Formatting: should print/println support: %i %r %s %b
-  
+  - Formatting strings for print/println must support: %i %r %s %b
