@@ -235,15 +235,15 @@ Int main(String[] args):
 # Supports both Array[Int] and Int[] styles
 <type>             ::= <base_type> ("[" "]")*
 <base_type>        ::= "Int" | "Real" | "Bool" | "String" | "Char" | "Void" 
-                                         | "Array" ("[" <type> "]")? 
-                                         | IDENTIFIER
+                        | "Array" ("[" <type> "]")? 
+                        | IDENTIFIER
 
 <statement>        ::= <var_decl>
-                                         | <if_stmt>
-                                         | <while_stmt>
-                                         | <return_stmt>
-                                         | <expr_stmt>
-                                         | <inner_stmt>
+                        | <if_stmt>
+                        | <while_stmt>
+                        | <return_stmt>
+                        | <expr_stmt>
+                        | <inner_stmt>
 
 <inner_stmt>       ::= "inner" NEWLINE
 
@@ -275,22 +275,22 @@ Int main(String[] args):
 <postfix>          ::= <primary> (<call_access>)*
 
 <call_access>      ::= "(" <arg_list>? ")" 
-                                         | "." IDENTIFIER 
-                                         | "[" <expression> "]"
+                        | "." IDENTIFIER 
+                        | "[" <expression> "]"
 
 <arg_list>         ::= <expression> ("," <expression>)*
 
 <primary>          ::= IDENTIFIER
-                                         | INTEGER
-                                         | REAL
-                                         | STRING
-                                         | CHAR
-                                         | "true" | "false"
-                                         | "null"
-                                         | "this"
-                                         | "inner"
-                                         | "(" <expression> ")"
-                                         | "[" <arg_list>? "]"   # Array Literal: [] or [1, 2]
+                        | INTEGER
+                        | REAL
+                        | STRING
+                        | CHAR
+                        | "true" | "false"
+                        | "null"
+                        | "this"
+                        | "inner"
+                        | "(" <expression> ")"
+                        | "[" <arg_list>? "]"   # Array Literal: [] or [1, 2]
 
 INTEGER            ::= [0-9]+
 REAL               ::= [0-9]+\.[0-9]+
