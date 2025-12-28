@@ -356,6 +356,8 @@ struct Codegen {
     int scratch_base = 0;
     int heap_base = 0;
     int max_slots = 0;
+    std::unordered_map<std::string, std::vector<std::string>> class_children;
+    std::unordered_map<std::string, std::unordered_set<std::string>> overridden_in_descendants;
 
     Codegen(Program &p, SemanticContext &c) : program(p), ctx(c) {}
 
@@ -442,6 +444,66 @@ struct Codegen {
         int class_id = 0;
         for (auto &kv : ctx.classes) ctx.layouts[kv.first].class_id = class_id++;
         for (auto &kv : ctx.classes) build_class_layout(kv.first);
+    }
+
+    void build_inheritance_info() {
+        class_children.clear();
+        overridden_in_descendants.clear();
+
+        for (auto &kv : ctx.classes) {
+            const auto &parent = kv.second.def->parent;
+            if (!parent.empty()) class_children[parent].push_back(kv.first);
+        }
+
+        for (auto &kv : ctx.layouts) {
+            const std::string &base = kv.first;
+            const auto &base_methods = kv.second.methods;
+            if (base_methods.empty()) continue;
+
+            std::vector<std::string> stack = class_children[base];
+            std::vector<std::string> descendants;
+            while (!stack.empty()) {
+                std::string cur = stack.back();
+                stack.pop_back();
+                descendants.push_back(cur);
+                auto it = class_children.find(cur);
+                if (it != class_children.end()) {
+                    for (const auto &child : it->second) stack.push_back(child);
+                }
+            }
+
+            for (const auto &desc : descendants) {
+                const auto &desc_layout = ctx.layouts[desc];
+                for (const auto &method_kv : base_methods) {
+                    const std::string &method_name = method_kv.first;
+                    const std::string &def_owner = method_kv.second.owner;
+                    auto it = desc_layout.methods.find(method_name);
+                    if (it != desc_layout.methods.end() && it->second.owner != def_owner) {
+                        overridden_in_descendants[base].insert(method_name);
+                    }
+                }
+            }
+        }
+    }
+
+    bool method_overridden_in_descendants(const std::string &class_name, const std::string &method_name) const {
+        auto it = overridden_in_descendants.find(class_name);
+        if (it == overridden_in_descendants.end()) return false;
+        return it->second.count(method_name) > 0;
+    }
+
+    bool method_overridden_in_ancestors(const std::string &class_name, const std::string &method_name) const {
+        auto it = ctx.classes.find(class_name);
+        if (it == ctx.classes.end()) return false;
+        std::string parent = it->second.def->parent;
+        while (!parent.empty()) {
+            auto layout_it = ctx.layouts.find(parent);
+            if (layout_it != ctx.layouts.end() && layout_it->second.methods.count(method_name)) return true;
+            auto class_it = ctx.classes.find(parent);
+            if (class_it == ctx.classes.end()) break;
+            parent = class_it->second.def->parent;
+        }
+        return false;
     }
 
     void build_class_layout(const std::string &name) {
@@ -1883,12 +1945,10 @@ struct Codegen {
         emit.line("i32.mul");
         emit.line("local.get " + fctx.temp_i32);
         emit.line("i32.add");
-        emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.const " + std::to_string(max_slots * 4));
         emit.line("i32.mul");
-        emit.line("i32.const " + std::to_string(slot));
+        emit.line("i32.const " + std::to_string(slot * 4));
         emit.line("i32.add");
-        emit.line("i32.const 4");
-        emit.line("i32.mul");
         emit.line("global.get $inner_base");
         emit.line("i32.add");
         emit.line("i32.load");
@@ -2225,7 +2285,11 @@ struct Codegen {
                     if (it != layout.methods.end()) {
                         emit.line("local.get " + fctx.temp_i32);
                         for (auto &arg : call->args) emit_expr(arg.get(), fctx, arg->type);
-                        emit_virtual_call(it->second, fctx);
+                        if (!method_overridden_in_descendants(obj_type->name, callee_mem->member)) {
+                            emit.line("call $" + it->second.owner + "$" + callee_mem->member);
+                        } else {
+                            emit_virtual_call(it->second, fctx);
+                        }
                         return;
                     }
                 }
@@ -2259,12 +2323,10 @@ struct Codegen {
     void emit_virtual_call(const MethodInfo &info, FunctionContext &fctx) {
         emit.line("local.get " + fctx.temp_i32);
         emit.line("i32.load");
-        emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.const " + std::to_string(max_slots * 4));
         emit.line("i32.mul");
-        emit.line("i32.const " + std::to_string(info.slot));
+        emit.line("i32.const " + std::to_string(info.slot * 4));
         emit.line("i32.add");
-        emit.line("i32.const 4");
-        emit.line("i32.mul");
         emit.line("global.get $vtable_base");
         emit.line("i32.add");
         emit.line("i32.load");
@@ -2643,6 +2705,7 @@ CodegenResult generate_wat(Program &program) {
 
     Codegen codegen(program, ctx);
     codegen.build_class_layouts();
+    codegen.build_inheritance_info();
     TypeChecker checker(program, ctx);
     for (auto &fn : program.functions) checker.check_function(fn);
     for (auto &cls : program.structs) {

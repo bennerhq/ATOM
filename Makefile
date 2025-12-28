@@ -16,6 +16,6 @@ build/%.o: compiler/%.cpp | build
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) atomc
+	rm -f $(OBJ) atomc ./build/*
 
 .PHONY: all clean
