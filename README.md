@@ -302,7 +302,6 @@ COMMENT            ::= "#" (~NEWLINE)* | "//" (~NEWLINE)*
 
 ## License
 ```License
------------------------------------------------------------------------------
 SPDX-License-Identifier: OBL-1.0
 Open Source Beer License (with Extra Bubbles)
  
