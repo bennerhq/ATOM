@@ -1,0 +1,25 @@
+# Nested arrays by storing array pointers inside an outer Array
+
+Int main():
+        "=== Nested Array Test ===".println()
+
+        Array first = [1, 2]
+        Array second = [3]
+        Array third = []
+        Array outer = []
+        outer.push(first)
+        outer.push(second)
+        outer.push(third)
+
+        Array inner0 = outer[0]
+        "inner0: %i %i".println(inner0[0], inner0[1])
+
+        Array inner2 = outer[1]
+        "inner1: %i".println(inner2[0])
+
+        Array inner3 = outer[2]
+        inner3.push(42)
+        "inner2 after push: %i size=%i".println(inner3[0], inner3.size())
+
+        "outer size=%i".println(outer.size())
+        return 0

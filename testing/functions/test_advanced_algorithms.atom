@@ -1,0 +1,71 @@
+# Advanced: Complex algorithm - Collatz conjecture and analysis
+
+MathAnalyzer:
+    Int collatzLength(Int n):
+        Int length = 0
+        while (n != 1):
+            if (n / 2 * 2 == n):
+                n = n / 2
+            else:
+                n = n * 3 + 1
+            length = length + 1
+        return length
+    
+    Int maxCollatzBelow(Int limit):
+        Int maxLen = 0
+        Int maxNum = 0
+        Int i = 1
+        while (i < limit):
+            Int len = this.collatzLength(i)
+            if (len > maxLen):
+                maxLen = len
+                maxNum = i
+            i = i + 1
+        return maxNum
+
+Analyzer:
+    Int countDivisors(Int n):
+        Int count = 0
+        Int i = 1
+        while (i <= n):
+            if (n - (n / i) * i == 0):
+                count = count + 1
+            i = i + 1
+        return count
+    
+    Int sumDigits(Int n):
+        Int sum = 0
+        while (n > 0):
+            sum = sum + (n - (n / 10) * 10)
+            n = n / 10
+        return sum
+
+Int main():
+        "=== Advanced Algorithm Test ===".println()
+        "".println()
+        
+        MathAnalyzer math = MathAnalyzer.new()
+        Analyzer analyzer = Analyzer.new()
+        
+        "Collatz conjecture sequence length:".println()
+        "collatz(1) = %i".println(math.collatzLength(1))
+        "collatz(5) = %i".println(math.collatzLength(5))
+        "collatz(10) = %i".println(math.collatzLength(10))
+        "collatz(27) = %i".println(math.collatzLength(27))
+        "".println()
+        
+        "Number with longest Collatz sequence below 50:".println()
+        Int maxNum = math.maxCollatzBelow(50)
+        "Number: %i".println(maxNum)
+        "".println()
+        
+        "Divisor counting:".println()
+        "divisors(12) = %i".println(analyzer.countDivisors(12))
+        "divisors(20) = %i".println(analyzer.countDivisors(20))
+        "".println()
+        
+        "Sum of digits:".println()
+        "sumDigits(123) = %i".println(analyzer.sumDigits(123))
+        "sumDigits(9999) = %i".println(analyzer.sumDigits(9999))
+        
+        return 0

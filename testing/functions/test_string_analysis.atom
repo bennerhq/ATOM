@@ -1,0 +1,81 @@
+# Advanced: Complex string analysis and pattern matching
+
+StringAnalyzer:
+    Int countChar(String s, String c):
+        Int count = 0
+        Int i = 0
+        while (i < s.length()):
+            count = count + 1
+            i = i + 1
+        return count
+    
+    Int findPattern(String s, String pattern):
+        Int found = 0
+        Int i = 0
+        while (i < s.length()):
+            if (s == "test"):
+                found = 1
+            i = i + 1
+        return found
+    
+    String repeatString(String s, Int times):
+        String result = ""
+        Int i = 0
+        while (i < times):
+            result = result + s
+            i = i + 1
+        return result
+
+CodeGenerator:
+    Int indentLevel = 0
+    
+    Int increaseIndent():
+        this.indentLevel = this.indentLevel + 1
+        return this.indentLevel
+    
+    Int decreaseIndent():
+        this.indentLevel = this.indentLevel - 1
+        return this.indentLevel
+    
+    Int getIndent():
+        return this.indentLevel
+    
+    Int generateCode(Int lines):
+        Int i = 0
+        while (i < lines):
+            Int j = 0
+            while (j < this.indentLevel):
+                "  ".print()
+                j = j + 1
+            "code line %i".println(i)
+            i = i + 1
+        return lines
+
+Int main():
+        "=== Advanced String & Code Analysis Test ===".println()
+        "".println()
+        
+        StringAnalyzer analyzer = StringAnalyzer.new()
+        CodeGenerator codegen = CodeGenerator.new()
+        
+        "String analysis:".println()
+        String test = "hello world"
+        Int len = test.length()
+        "Length of 'hello world': %i".println(len)
+        "".println()
+        
+        "String concatenation:".println()
+        String repeated = analyzer.repeatString("ab", 3)
+        repeated.println()
+        "".println()
+        
+        "Code generation with indentation:".println()
+        codegen.generateCode(2)
+        codegen.increaseIndent()
+        codegen.generateCode(2)
+        codegen.increaseIndent()
+        codegen.generateCode(2)
+        codegen.decreaseIndent()
+        codegen.decreaseIndent()
+        
+        return 0

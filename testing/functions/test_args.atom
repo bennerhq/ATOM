@@ -1,0 +1,25 @@
+TestArgs:
+    Int testArguments(String[] args):
+        "argc: %i".println(args.count())
+        return args.count()
+
+Int main(String[] args):
+        "Arguments: %i".println(args.count())
+        
+        Int count = 0
+        count = args.count()
+        "Total args: %i".println(count)
+        
+        if (count > 0):
+            Int firstArg = args.getInt(0)
+            "First arg: %i".println(firstArg)
+        
+        if (count > 1):
+            Int secondArg = args.getInt(1)
+            "Second arg: %i".println(secondArg)
+        
+        TestArgs test = TestArgs.new()
+        Int result = test.testArguments(args)
+        "Result: %i".println(result)
+        
+        return 0

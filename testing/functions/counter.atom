@@ -1,0 +1,47 @@
+# Counter example
+# Demonstrates state management
+
+Counter:
+    Int count
+
+    init():
+        this.count = 0
+
+    increment():
+        this.count = this.count + 1
+
+    decrement():
+        this.count = this.count - 1
+
+    reset():
+        this.count = 0
+
+    Int getValue():
+        return this.count
+
+    setValue(Int value):
+        this.count = value
+
+Int main():
+        "=== Counter Test ===".println()
+        
+        Counter counter = Counter.new()
+        "Initial: %i".println(counter.getValue())
+        
+        counter.increment()
+        "After increment: %i".println(counter.getValue())
+        
+        counter.increment()
+        counter.increment()
+        "After 2 more increments: %i".println(counter.getValue())
+        
+        counter.decrement()
+        "After decrement: %i".println(counter.getValue())
+        
+        counter.setValue(42)
+        "After setValue(42): %i".println(counter.getValue())
+        
+        counter.reset()
+        "After reset: %i".println(counter.getValue())
+        
+        return 0

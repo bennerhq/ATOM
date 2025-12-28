@@ -1,0 +1,83 @@
+# Advanced: State Machine implementation
+
+TrafficLight:
+    Int state = 0
+    
+    Int RED():
+        return 0
+    
+    Int YELLOW():
+        return 1
+    
+    Int GREEN():
+        return 2
+    
+    Int getState():
+        return this.state
+    
+    Int next():
+        if (this.state == this.RED()):
+            this.state = this.GREEN()
+        else:
+            if (this.state == this.GREEN()):
+                this.state = this.YELLOW()
+            else:
+                if (this.state == this.YELLOW()):
+                    this.state = this.RED()
+        return this.state
+    
+    Int printState():
+        if (this.state == 0):
+            "RED".println()
+        else:
+            if (this.state == 1):
+                "YELLOW".println()
+            else:
+                "GREEN".println()
+        return 0
+
+Parser:
+    Int depth = 0
+    
+    Int parseExpression(Int level):
+        if (level > 5):
+            return 0
+        else:
+            this.depth = this.depth + 1
+            Int result = this.parseExpression(level + 1)
+            this.depth = this.depth - 1
+            return result
+
+Int main():
+        "=== State Machine Test ===".println()
+        "".println()
+        
+        TrafficLight light = TrafficLight.new()
+        
+        "Traffic Light State Machine:".println()
+        "Initial state: ".print()
+        light.printState()
+        
+        "Next state: ".print()
+        light.next()
+        light.printState()
+        
+        "Next state: ".print()
+        light.next()
+        light.printState()
+        
+        "Next state: ".print()
+        light.next()
+        light.printState()
+        
+        "Next state: ".print()
+        light.next()
+        light.printState()
+        "".println()
+        
+        "Recursive depth tracking:".println()
+        Parser parser = Parser.new()
+        parser.parseExpression(0)
+        "Final depth: %i".println(parser.depth)
+        
+        return 0

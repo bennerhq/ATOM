@@ -1,0 +1,21 @@
+=== Format Specifier Tests ===
+
+Integer test: 42
+Hex (as decimal): 255
+Small int: 10
+
+String test: ATOM
+Greeting: Hello, World!
+
+Real test: 3
+Pi approximation: 3
+Small number: 0
+
+Boolean (true): true
+Boolean (false): false
+
+Mixed: Int=42, String=test, Real=2, Bool=true
+
+Count: 1
+Line 1
+Line 2

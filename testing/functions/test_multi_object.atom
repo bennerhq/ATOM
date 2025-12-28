@@ -1,0 +1,77 @@
+# Multiple object interactions with state changes
+
+Player:
+    Int health
+    Int score
+    
+    Player setHealth(Int h):
+        this.health = h
+        return this
+    
+    Player setScore(Int s):
+        this.score = s
+        return this
+    
+    Player takeDamage(Int damage):
+        this.health = this.health - damage
+        return this
+    
+    Player addScore(Int points):
+        this.score = this.score + points
+        return this
+    
+    Int getHealth():
+        return this.health
+    
+    Int getScore():
+        return this.score
+
+Game:
+    Int simulate():
+        Player p1 = Player.new()
+        Player p2 = Player.new()
+        Player p3 = Player.new()
+        
+        # Initialize players
+        p1.setHealth(100)
+        p1.setScore(0)
+        
+        p2.setHealth(100)
+        p2.setScore(0)
+        
+        p3.setHealth(100)
+        p3.setScore(0)
+        
+        # Simulate combat
+        p1.takeDamage(20)
+        p1.addScore(10)
+        
+        p2.takeDamage(30)
+        p2.addScore(15)
+        
+        p3.takeDamage(10)
+        p3.addScore(5)
+        
+        # More damage
+        p1.takeDamage(15)
+        p2.takeDamage(25)
+        
+        Int totalHealth = p1.getHealth() + p2.getHealth() + p3.getHealth()
+        Int totalScore = p1.getScore() + p2.getScore() + p3.getScore()
+        
+        "P1 Health: %i".println(p1.getHealth())
+        "P2 Health: %i".println(p2.getHealth())
+        "P3 Health: %i".println(p3.getHealth())
+        "Total Health: %i".println(totalHealth)
+        "Total Score: %i".println(totalScore)
+        
+        return totalHealth
+
+Int main():
+        "=== Multi-Object Interaction Test ===".println()
+        
+        Game g = Game.new()
+        Int result = g.simulate()
+        "Final result: %i".println(result)
+        
+        return 0

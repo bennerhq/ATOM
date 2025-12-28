@@ -1,0 +1,15 @@
+Calculator:
+    Int add(Int a, Int b):
+        return a + b
+    
+    Int multiply(Int a, Int b):
+        return a * b
+
+Main:
+    void start():
+        Calculator calc = Calculator.new()
+        Int sum = calc.add(5, 3)
+        Int product = calc.multiply(4, 7)
+
+        "%i".println(sum)
+        "%i".println(product)

@@ -1,0 +1,15 @@
+# Base utility module
+# This is the lowest level - provides basic utilities
+
+Fido:
+    Int bark():
+        "Woof! Woof!".println()
+        return 1
+
+Utils:
+    Int double(Int x):
+        Fido f = Fido.new()
+        return x * 2 + f.bark()
+    
+    Int triple(Int x):
+        return x * 3

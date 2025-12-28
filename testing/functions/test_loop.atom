@@ -1,0 +1,24 @@
+Sum:
+    Int total
+    
+    init():
+        total = 0
+    
+    add(Int n):
+        total = total + n
+    
+    Int getTotal():
+        return total
+
+Int main():
+        Sum s = Sum.new()
+        s.init()
+        Int i = 0
+        while (i < 5):
+            s.add(i)
+            "%i".println(i)
+            i = i + 1
+        Int result = s.getTotal()
+        "%i".println(result)
+        return result
+

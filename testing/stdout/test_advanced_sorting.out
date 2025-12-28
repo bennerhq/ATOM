@@ -1,0 +1,10 @@
+=== Advanced Sorting Test ===
+
+Sorting 5 elements using comparison logic:
+quickSort(64,34,25,12,22) = 264604
+
+quickSort(99,5,50,30,10) = 81599
+
+quickSort(1,2,3,4,5) = 12345
+
+quickSort(5,4,3,2,1) = 32145

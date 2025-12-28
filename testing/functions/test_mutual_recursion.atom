@@ -1,0 +1,33 @@
+# Mutual recursion test
+
+EvenOddChecker:
+    Int isEven(Int n):
+        if (n == 0):
+            return 1
+        else:
+            if (n < 0):
+                return this.isEven(0 - n)
+            else:
+                return this.isOdd(n - 1)
+    
+    Int isOdd(Int n):
+        if (n == 0):
+            return 0
+        else:
+            if (n < 0):
+                return this.isOdd(0 - n)
+            else:
+                return this.isEven(n - 1)
+
+Int main():
+        "=== Mutual Recursion Test ===".println()
+        
+        EvenOddChecker checker = EvenOddChecker.new()
+        
+        "isEven(4) = %i".println(checker.isEven(4))
+        "isOdd(4) = %i".println(checker.isOdd(4))
+        "isEven(7) = %i".println(checker.isEven(7))
+        "isOdd(7) = %i".println(checker.isOdd(7))
+        "isEven(0) = %i".println(checker.isEven(0))
+        
+        return 0

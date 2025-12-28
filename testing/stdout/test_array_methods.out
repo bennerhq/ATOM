@@ -1,0 +1,10 @@
+=== Array Methods Test ===
+size=0
+size=3
+get: 10 20 30
+pop=30
+size=2
+pop=20
+pop=10
+pop=-1
+size=0

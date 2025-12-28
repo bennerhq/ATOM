@@ -1,0 +1,34 @@
+# Atom test for virtual/non-method inheritance and overriding
+
+Base:
+    String nonVirtual():
+        return "Base.nonVirtual"
+
+    String virtualMethod():
+        return "Base.virtualMethod"
+
+Derived: Base:
+    String nonVirtual():
+        return "Derived.nonVirtual"  # Should NOT override
+
+    String virtualMethod():
+        return "Derived.virtualMethod"  # Should override
+
+Int main():
+        Base b = Base()
+        Derived d = Derived()
+        String res
+
+        res = b.nonVirtual()
+        res.println()           # Expect: Base.nonVirtual
+
+        res = b.virtualMethod()
+        res.println()           # Expect: Base.virtualMethod
+
+        res = d.nonVirtual()
+        res.println()           # Expect: Base.non(NOT overridden)
+
+        res = d.virtualMethod()
+        res.println()   # Expect: Derived.virtualMethod (overridden)
+  
+        return 0

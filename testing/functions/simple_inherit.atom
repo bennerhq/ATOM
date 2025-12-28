@@ -1,0 +1,21 @@
+Counter:
+    Int count
+    
+    init():
+        this.count = 0
+    
+    increment():
+        this.count = this.count + 1
+    
+    Int getCount():
+        return this.count
+
+LimitedCounter: Counter:
+    init():
+        this.count = 0
+
+Int main():
+        LimitedCounter lc = LimitedCounter.new()
+        Int c = lc.getCount()
+        c.println()
+        return 0

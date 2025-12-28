@@ -1,0 +1,4 @@
+Base.nonVirtual
+Base.virtualMethod
+Base.nonVirtual
+Derived.virtualMethod

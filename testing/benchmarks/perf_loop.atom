@@ -1,0 +1,29 @@
+# Loop-heavy benchmark used for runtime speed checks
+
+Bench:
+    Int wrap
+    Int iterations
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int run():
+        Int i = 0
+        Int acc = 0
+        while (i < this.iterations):
+            acc = acc + i
+            if (acc > this.wrap):
+                acc = acc - this.wrap
+            i = i + 1
+        return acc
+
+Int main():
+        Int iterations = 100000000
+        Int wrap = 1000000
+        Bench bench = Bench.new(iterations, wrap)
+        Int checksum = bench.run()
+        "Iterations: %i".println(iterations)
+        "Wrap: %i".println(wrap)
+        "Checksum: %i".println(checksum)
+        return 0

@@ -1,0 +1,14 @@
+# Math module - demonstrating modular code with imports
+
+MathModule:
+    Int add(Int a, Int b):
+        return a + b
+    
+    Int subtract(Int a, Int b):
+        return a - b
+    
+    Int multiply(Int a, Int b):
+        return a * b
+    
+    Int square(Int x):
+        return this.multiply(x, x)

@@ -1,0 +1,48 @@
+TestOutput:
+    Int intVal
+    Real realVal
+    Bool boolVal
+    String stringVal
+    
+    init():
+        this.intVal = 42
+        this.realVal = 3.14159
+        this.boolVal = 1
+        this.stringVal = "ATOM"
+    
+    test():
+        "=== Format Specifier Tests ===".println()
+        "".println()
+        
+        "Integer test: %i".println(this.intVal)
+        "Hex (as decimal): %i".println(255)
+        "Small int: %i".println(10)
+        "".println()
+        
+        "String test: %s".println(this.stringVal)
+        "Greeting: %s, %s!".println("Hello", "World")
+        "".println()
+        
+        "Real test: %r".println(this.realVal)
+        "Pi approximation: %r".println(3.14159265)
+        "Small number: %r".println(0.001)
+        "".println()
+        
+        "Boolean (true): %b".println(1)
+        "Boolean (false): %b".println(0)
+        "".println()
+        
+        "Mixed: Int=%i, String=%s, Real=%r, Bool=%b".println(42, "test", 2.71, 1)
+        "".println()
+        
+        "Count: ".print()
+        "%i".println(1)
+        
+        "Line 1".println()
+        "Line 2".println()
+
+Int main():
+        TestOutput test = TestOutput.new()
+        test.init()
+        test.test()
+        return 0

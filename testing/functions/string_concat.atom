@@ -1,0 +1,8 @@
+Int main():
+        String s1 = "Hello"
+        String s2 = "World"
+        String result = s1 + s2
+        result.println()
+        return 0
+
+

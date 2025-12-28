@@ -1,0 +1,4 @@
+=== String Compare ===
+a == b: true
+a == c: false
+a != c: true

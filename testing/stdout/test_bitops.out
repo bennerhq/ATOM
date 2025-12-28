@@ -1,0 +1,8 @@
+=== Bit Operations Test ===
+isPowerOfTwo(16) = 1
+isPowerOfTwo(15) = 0
+isPowerOfTwo(64) = 1
+countBits(7) = 3
+countBits(15) = 4
+getBit(13,0) = 1
+getBit(13,2) = 1

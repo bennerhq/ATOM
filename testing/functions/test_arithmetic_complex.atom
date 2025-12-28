@@ -1,0 +1,41 @@
+# Complex arithmetic expressions with operator precedence
+
+Calculator:
+    Int expr1():
+        return 2 + 3 * 4 - 5
+    
+    Int expr2():
+        return 10 * (5 + 3) / 2
+    
+    Int expr3():
+        return 100 - 20 * 3 + 10 / 2
+    
+    Int expr4():
+        Int a = 5
+        Int b = 3
+        Int c = 2
+        return a * b + c * (a - b)
+    
+    Int expr5():
+        Int x = 10
+        Int y = 20
+        Int z = 30
+        return (x + y) * (z - x) / (y - x)
+    
+    Int nestedExpr():
+        Int result = ((5 + 3) * 2 - 4) / (6 - 2)
+        return result
+
+Int main():
+        "=== Complex Arithmetic Test ===".println()
+        
+        Calculator calc = Calculator.new()
+        
+        "expr1: %i".println(calc.expr1())
+        "expr2: %i".println(calc.expr2())
+        "expr3: %i".println(calc.expr3())
+        "expr4: %i".println(calc.expr4())
+        "expr5: %i".println(calc.expr5())
+        "nestedExpr: %i".println(calc.nestedExpr())
+        
+        return 0

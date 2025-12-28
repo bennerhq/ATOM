@@ -1,0 +1,26 @@
+# String concatenation benchmark
+
+StrCatBench:
+    Int n
+
+    init(Int n):
+        this.n = n
+
+    String run():
+        String s = ""
+        Int i = 0
+        while (i < this.n):
+            s = s + "a"
+            i = i + 1
+        return s
+
+Int main(String[] args):
+        Int n = 100000
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        StrCatBench bench = StrCatBench.new(n)
+        String result = bench.run()
+        "N: %i".println(n)
+        "Length: %i".println(result.length())
+        return 0

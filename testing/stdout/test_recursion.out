@@ -1,0 +1,13 @@
+=== Recursion Test ===
+
+Fibonacci sequence:
+fib(0) = 0
+fib(1) = 1
+fib(5) = 5
+fib(10) = 55
+
+Factorial:
+fact(0) = 1
+fact(1) = 1
+fact(5) = 120
+fact(10) = 3628800

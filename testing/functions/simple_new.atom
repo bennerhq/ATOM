@@ -1,0 +1,22 @@
+Point:
+    Int x
+    Int y
+    
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+    
+    Int getX():
+        return this.x
+    
+    Int getY():
+        return this.y
+
+Int main():
+        Point p = Point.new()
+        p.init(3, 4)
+        Int x = p.getX()
+        Int y = p.getY()
+        Int sum = x + y
+        "Sum of x and y: %i".println(sum)
+        return 0

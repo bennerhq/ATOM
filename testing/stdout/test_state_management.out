@@ -1,0 +1,14 @@
+=== State Management Test ===
+
+Account 1 deposit 1000: 1000
+Account 2 deposit 500: 500
+Account 3 deposit 750: 750
+
+Account 1 withdraw 200: 800
+Account 2 withdraw 100: 400
+
+Total in bank: 1950
+
+Account 1 balance: 800
+Account 2 balance: 400
+Account 3 balance: 750

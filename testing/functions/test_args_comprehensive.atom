@@ -1,0 +1,24 @@
+Int main(String[] args):
+        "=== Args Methods Demonstration ===".println()
+        "".println()
+        
+        Int argc = args.count()
+        "Total arguments: %i".println(argc)
+        "".println()
+        
+        if (argc > 0):
+            "Argument 0 as string: %s".println(args.getString(0))
+            "Argument 0 as int: %i".println(args.getInt(0))
+            "".println()
+        
+        if (argc > 1):
+            "Argument 1 as string: %s".println(args.getString(1))
+            "Argument 1 as int: %i".println(args.getInt(1))
+            "".println()
+        
+        if (argc > 2):
+            "Argument 2 as string: %s".println(args.getString(2))
+            "Argument 2 as int: %i".println(args.getInt(2))
+            "".println()
+        
+        return 0

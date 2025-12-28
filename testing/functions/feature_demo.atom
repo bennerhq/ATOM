@@ -1,0 +1,56 @@
+# Feature demonstration - all working features of Atom
+
+Int main():
+        "========================================".println()
+        "      Atom Language Features".println()
+        "========================================".println()
+        
+        "=== Arithmetic ===".println()
+        "5 + 3 = %i".println(5 + 3)
+        "10 - 4 = %i".println(10 - 4)
+        "6 * 7 = %i".println(6 * 7)
+        "20 / 4 = %i".println(20 / 4)
+        
+        "=== Comparisons ===".println()
+        "5 < 10: %b".println(5 < 10)
+        "10 > 5: %b".println(10 > 5)
+        "5 == 5: %b".println(5 == 5)
+        "5 != 10: %b".println(5 != 10)
+        
+        "=== Negatives ===".println()
+        "-42: %i".println(-42)
+        "-100 + 50 = %i".println(-100 + 50)
+        
+        "=== Strings ===".println()
+        "Simple".println()
+        "Format %s".println("test")
+        "Multi: %s, %s".println("a", "b")
+        
+        "=== Variables ===".println()
+        Int x = 42
+        Int y = 58
+        "x = %i".println(x)
+        "y = %i".println(y)
+        "x + y = %i".println(x + y)
+        
+        "=== Control Flow ===".println()
+        if (x > 40):
+            "x > 40".println()
+        if (x < 40):
+            "x < 40".println()
+        else:
+            "x >= 40".println()
+        
+        "=== Loops ===".println()
+        Int i = 0
+        Int sum = 0
+        while (i < 5):
+            sum = sum + i
+            i = i + 1
+        "Sum of 0-4: %i".println(sum)
+        
+        "========================================".println()
+        "      All Features Working!".println()
+        "========================================".println()
+        
+        return 0

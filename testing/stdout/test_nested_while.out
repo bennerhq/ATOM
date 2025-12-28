@@ -1,0 +1,4 @@
+=== Nested While Loops Test ===
+findTarget(12) = 1
+findTarget(99) = 0
+sumUpperTriangle() = 140

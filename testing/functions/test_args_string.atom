@@ -1,0 +1,17 @@
+Int main(String[] args):
+        Int count = args.count()
+        "Received %i arguments".println(count)
+        
+        if (count > 0):
+            String first = args.getString(0)
+            "First argument: %s".println(first)
+        
+        if (count > 1):
+            String second = args.getString(1)
+            "Second argument: %s".println(second)
+        
+        if (count > 2):
+            Int third = args.getInt(2)
+            "Third argument as int: %i".println(third)
+        
+        return 0

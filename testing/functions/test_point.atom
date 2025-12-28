@@ -1,0 +1,18 @@
+# More complex test
+Point:
+    Int x
+    Int y
+    
+    init(Int a, Int b):
+        x = a
+        y = b
+    
+    Int getX():
+        return x
+
+Int main():
+        Point p = Point.new()
+        p.init(3, 4)
+        Int result = p.getX()
+        "return %i".println(result)
+        return 0

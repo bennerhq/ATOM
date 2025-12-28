@@ -1,0 +1,251 @@
+# Practical Example: HTTP Request Pipeline with Inner
+# Demonstrates how inner keyword enables clean middleware patterns
+
+HttpRequest:
+    Int method
+    Int path
+    Int statusCode
+    
+    init(Int method, Int path):
+        this.method = method
+        this.path = path
+        this.statusCode = 0
+    
+    Int process():
+        # Base processing: connection handling
+        Int connectionOpen = 1
+        
+        # Extension point for middleware/handlers
+        inner
+        
+        # Base processing: connection cleanup
+        Int connectionClose = 0
+        
+        return this.statusCode
+
+AuthenticatedRequest:
+    Int authToken
+    Int userId
+    
+    init(Int token):
+        this.authToken = token
+        this.userId = 0
+    
+    Int process():
+        # Authentication middleware
+        Int authenticated = this.authenticate()
+        
+        if (authenticated == 0):
+            # Auth failed
+            return 401
+        
+        # Continue processing
+        inner
+        
+        # Auth cleanup/logging
+        Int authLogged = 1
+        
+        return 200
+    
+    Int authenticate():
+        if (this.authToken > 0):
+            this.userId = this.authToken
+            return 1
+        return 0
+
+RateLimitedRequest:
+    Int requestCount
+    Int limit
+    
+    init(Int count, Int limit):
+        this.requestCount = count
+        this.limit = limit
+    
+    Int process():
+        # Rate limiting middleware
+        if (this.requestCount >= this.limit):
+            return 429
+        
+        this.requestCount = this.requestCount + 1
+        
+        # Continue to next layer
+        inner
+        
+        return 200
+
+ValidatedRequest:
+    Int contentType
+    Int contentLength
+    
+    init(Int cType, Int cLength):
+        this.contentType = cType
+        this.contentLength = cLength
+    
+    Int process():
+        # Validation middleware
+        Int valid = this.validate()
+        
+        if (valid == 0):
+            return 400
+        
+        # Continue processing
+        inner
+        
+        return 200
+    
+    Int validate():
+        if (this.contentLength > 1000000):
+            return 0
+        if (this.contentType == 0):
+            return 0
+        return 1
+
+# ===== Database Transaction Pattern =====
+
+Transaction:
+    Int id
+    Int status
+    
+    init(Int id):
+        this.id = id
+        this.status = 0
+    
+    Int execute():
+        # Begin transaction
+        Int begun = this.begin()
+        
+        if (begun == 0):
+            return 0
+        
+        # Execute operations (extension point)
+        inner
+        
+        # Commit or rollback based on status
+        Int committed = this.commit()
+        
+        return committed
+    
+    Int begin():
+        this.status = 1
+        return 1
+    
+    Int commit():
+        if (this.status == 1):
+            this.status = 2
+            return 1
+        # Rollback
+        this.status = 0
+        return 0
+
+UserTransaction:
+    Int userId
+    Int operation
+    
+    init(Int userId, Int op):
+        this.userId = userId
+        this.operation = op
+    
+    Int execute():
+        # User-specific transaction operations
+        Int validated = this.validateUser()
+        
+        if (validated == 0):
+            return 0
+        
+        Int result = this.performOperation()
+        
+        # Can have nested transactions
+        inner
+        
+        return result
+    
+    Int validateUser():
+        if (this.userId > 0):
+            return 1
+        return 0
+    
+    Int performOperation():
+        return this.operation
+
+# ===== Event Processing Pipeline =====
+
+EventProcessor:
+    Int eventType
+    Int eventData
+    
+    init(Int type, Int data):
+        this.eventType = type
+        this.eventData = data
+    
+    Int process():
+        # Pre-processing
+        Int validated = this.validateEvent()
+        
+        if (validated == 0):
+            return 0
+        
+        # Event handling (extension point)
+        inner
+        
+        # Post-processing
+        Int persisted = this.persistEvent()
+        
+        return persisted
+    
+    Int validateEvent():
+        if (this.eventType > 0):
+            return 1
+        return 0
+    
+    Int persistEvent():
+        return 1
+
+UserEventProcessor:
+    Int userId
+    Int timestamp
+    
+    init(Int userId, Int timestamp):
+        this.userId = userId
+        this.timestamp = timestamp
+    
+    Int process():
+        # User event specific processing
+        Int enriched = this.enrichEventData()
+        
+        # Allow further processing
+        inner
+        
+        # User-specific cleanup
+        Int notified = this.notifyUser()
+        
+        return enriched
+    
+    Int enrichEventData():
+        return this.userId + this.timestamp
+    
+    Int notifyUser():
+        return 1
+
+AuditedEventProcessor:
+    Int auditId
+    
+    init(Int auditId):
+        this.auditId = auditId
+    
+    Int process():
+        # Audit logging
+        Int auditStart = this.startAudit()
+        
+        # Actual processing
+        inner
+        
+        # Complete audit trail
+        Int auditEnd = this.completeAudit()
+        
+        return auditEnd
+    
+    Int startAudit():
+        return this.auditId
+    
+    Int completeAudit():
+        return 1

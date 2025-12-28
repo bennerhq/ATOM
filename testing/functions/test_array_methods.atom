@@ -1,0 +1,21 @@
+# Exercise built-in Array methods: size, push, pop, growth
+
+Int main():
+        "=== Array Methods Test ===".println()
+
+        Array a = []
+        "size=%i".println(a.size())
+
+        a.push(10)
+        a.push(20)
+        a.push(30)
+        "size=%i".println(a.size())
+        "get: %i %i %i".println(a[0], a[1], a[2])
+
+        "pop=%i".println(a.pop())
+        "size=%i".println(a.size())
+        "pop=%i".println(a.pop())
+        "pop=%i".println(a.pop())
+        "pop=%i".println(a.pop())
+        "size=%i".println(a.size())
+        return 0

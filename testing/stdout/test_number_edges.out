@@ -1,0 +1,6 @@
+=== Number Edge Cases Test ===
+Large addition: 3000000
+Large multiply: 5000000
+Divide chain 1000: 125
+2^10 = 1024
+2^20 = 1048576

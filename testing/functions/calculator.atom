@@ -1,0 +1,51 @@
+# Simple calculator example
+# Demonstrates control flow and arithmetic
+
+Calculator:
+    Int add(Int a, Int b):
+        return a + b
+
+    Int subtract(Int a, Int b):
+        return a - b
+
+    Int multiply(Int a, Int b):
+        return a * b
+
+    Int divide(Int a, Int b):
+        if (b == 0):
+            return 0
+        return a / b
+
+    Int factorial(Int n):
+        if (n <= 1):
+            return 1
+        Int result = 1
+        Int i = 2
+        while (i <= n):
+            result = result * i
+            i = i + 1
+        return result
+
+    Int power(Int base, Int exp):
+        if (exp == 0):
+            return 1
+        Int result = 1
+        Int i = 0
+        while (i < exp):
+            result = result * base
+            i = i + 1
+        return result
+
+Int main():
+        "=== Calculator Test ===".println()
+        
+        Calculator calc = Calculator.new()
+        
+        "5 + 3 = %i".println(calc.add(5, 3))
+        "10 - 4 = %i".println(calc.subtract(10, 4))
+        "6 * 7 = %i".println(calc.multiply(6, 7))
+        "20 / 4 = %i".println(calc.divide(20, 4))
+        "5! = %i".println(calc.factorial(5))
+        "2^8 = %i".println(calc.power(2, 8))
+        
+        return 0

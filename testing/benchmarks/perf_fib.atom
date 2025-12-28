@@ -1,0 +1,26 @@
+# Recursive Fibonacci benchmark
+
+FibBench:
+    Int n
+
+    init(Int n):
+        this.n = n
+
+    Int fib(Int x):
+        if (x <= 1):
+            return x
+        return this.fib(x - 1) + this.fib(x - 2)
+
+    Int run():
+        return this.fib(this.n)
+
+Int main(String[] args):
+        Int n = 40
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        FibBench bench = FibBench.new(n)
+        Int result = bench.run()
+        "N: %i".println(n)
+        "Result: %i".println(result)
+        return 0

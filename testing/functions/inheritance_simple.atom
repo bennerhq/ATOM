@@ -1,0 +1,215 @@
+# Simple Inheritance Example
+# Shows basic inheritance, method overriding, and the inner keyword
+
+# Base representing a person
+Person:
+    Int name
+    Int age
+    
+    init(Int name, Int age):
+        this.name = name
+        this.age = age
+    
+    # method - can be overridden
+    Int greet():
+        return this.name
+    
+    # Template method with inner extension point
+    Int introduce():
+        Int greeting = this.greet()
+        
+        # Extension point for subclasses
+        inner
+        
+        Int age = this.age
+        return 0
+    
+    Int getAge():
+        return this.age
+
+# Student inherits from Person
+Student: Person:
+    Int studentId
+    Int major
+    
+    init(Int name, Int age, Int id, Int major):
+        this.name = name
+        this.age = age
+        this.studentId = id
+        this.major = major
+    
+    # Override greet with student-specific greeting
+    Int greet():
+        Int studentGreeting = this.studentId
+        return studentGreeting
+    
+    # Extend introduce at inner point
+    Int introduce():
+        Int majorInfo = this.major
+        Int idInfo = this.studentId
+        inner
+        return 0
+    
+    Int getStudentId():
+        return this.studentId
+
+# Professor also inherits from Person
+Professor: Person:
+    Int department
+    Int yearsTeaching
+    
+    init(Int name, Int age, Int dept, Int years):
+        this.name = name
+        this.age = age
+        this.department = dept
+        this.yearsTeaching = years
+    
+    # Different override of greet
+    Int greet():
+        Int profTitle = 1
+        Int profName = this.name
+        return profName
+    
+    # Different extension at inner point
+    Int introduce():
+        Int deptInfo = this.department
+        Int experience = this.yearsTeaching
+        inner
+        return experience
+    
+    Int getDepartment():
+        return this.department
+
+# ===== Simple Shape Hierarchy =====
+
+Shape:
+    Int x
+    Int y
+    
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+    
+    # method - should be overridden by subclasses
+    Int area():
+        return 0
+    
+    move(Int dx, Int dy):
+        this.x = this.x + dx
+        this.y = this.y + dy
+
+Rectangle: Shape:
+    Int width
+    Int height
+    
+    init(Int x, Int y, Int w, Int h):
+        this.x = x
+        this.y = y
+        this.width = w
+        this.height = h
+    
+    # Override area with rectangle calculation
+    Int area():
+        return this.width * this.height
+    
+    Int getWidth():
+        return this.width
+    
+    Int getHeight():
+        return this.height
+
+Square: Rectangle:
+    init(Int x, Int y, Int size):
+        this.x = x
+        this.y = y
+        this.width = size
+        this.height = size
+    
+    # Square has same width and height
+    # Inherits area calculation from Rectangle
+    
+    setSize(Int size):
+        this.width = size
+        this.height = size
+
+# ===== Simple Counter Hierarchy =====
+
+Counter:
+    Int count
+
+    Void increment():
+        this.count = this.count + 1
+        inner
+
+    Void decrement():
+        this.count = this.count - 1
+        inner
+
+    Int getCount():
+        return this.count
+
+LimitedCounter: Counter:
+    Int maxCount
+
+    init(Int max):
+        this.count = 0
+        this.maxCount = max
+
+    # Override to enforce maximum
+    Void increment():
+        if (this.count < this.maxCount):
+            this.count = this.count + 1
+            inner
+
+    # Override to enforce minimum (0)
+    Void decrement():
+        if (this.count > 0):
+            this.count = this.count - 1
+            inner
+
+StepCounter: Counter:
+    Int stepSize
+
+    init(Int step):
+        this.count = 0
+        this.stepSize = step
+
+    # Override to increment by stepSize
+    Void increment():
+        this.count = this.count + this.stepSize
+        inner
+
+    # Override to decrement by stepSize
+    Void decrement():
+        this.count = this.count - this.stepSize
+        inner
+
+Int main():
+        "=== Inheritance Test ===".println()
+        
+        # Test Rectangle
+        Rectangle rect = Rectangle.new(0, 0, 10, 5)
+        "Rectangle area: %i".println(rect.area())
+        
+        # Test Square
+        Square sq = Square.new(0, 0, 8)
+        "Square area: %i".println(sq.area())
+        
+        # Test Counter
+        Counter counter = Counter.new()
+        counter.increment()
+        counter.increment()
+        "Counter: %i".println(counter.getCount())
+        
+        # Test LimitedCounter
+        LimitedCounter limited = LimitedCounter.new(3)
+        limited.increment()
+        limited.increment()
+        "Limited counter: %i".println(limited.getCount())
+        
+        # Test StepCounter
+        StepCounter step = StepCounter.new(5)
+        step.increment()
+        "Step counter: %i".println(step.getCount())
+        
+        return 0

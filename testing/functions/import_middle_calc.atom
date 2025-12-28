@@ -1,0 +1,25 @@
+# Middle module - imports from base
+# This module uses Utils and adds more functionality
+
+import Utils from "import_base_utils.atom"
+
+Calculator:
+    Int add(Int a, Int b):
+        return a + b
+    
+    Int calculate(Int x):
+        Utils utils = Utils.new()
+        Int result = utils.double(x)
+        result = result + utils.triple(x)
+        return result
+
+Int main():
+        "=== Middle Import Test ===".println()
+
+        Calculator calc = Calculator.new()
+        "calc.add(2, 3) = %i".println(calc.add(2, 3))
+
+        Int result = calc.calculate(4)
+        "%i".println(result)
+
+        return 0

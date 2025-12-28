@@ -1,0 +1,12 @@
+Math:
+    Int add(Int a, Int b):
+        return a + b
+    
+    Int multiply(Int a, Int b):
+        return a * b
+
+Int main():
+        Math m = Math.new()
+        Int result = m.add(10, 32)
+        "%i".println(result)
+        return 0

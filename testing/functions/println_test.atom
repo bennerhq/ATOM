@@ -1,0 +1,6 @@
+# Simple println test
+
+Int main():
+        "Hello, Atom!".println()
+        "Direct call works!".println()
+        return 0

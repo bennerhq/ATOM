@@ -1,0 +1,59 @@
+# Simulating bitwise operations using arithmetic
+
+BitOps:
+    Int isPowerOfTwo(Int n):
+        # Check if n is a power of 2
+        if (n <= 0):
+            return 0
+        
+        Int count = 0
+        Int temp = n
+        
+        while (temp > 0):
+            Int remainder = temp % 2
+            if (remainder == 1):
+                count = count + 1
+            temp = temp / 2
+        
+        if (count == 1):
+            return 1
+        return 0
+    
+    Int countBits(Int n):
+        # Count set bits
+        Int count = 0
+        Int temp = n
+        
+        while (temp > 0):
+            Int remainder = temp % 2
+            if (remainder == 1):
+                count = count + 1
+            temp = temp / 2
+        
+        return count
+    
+    Int getBit(Int n, Int pos):
+        # Get bit at position
+        Int i = 0
+        Int temp = n
+        
+        while (i < pos):
+            temp = temp / 2
+            i = i + 1
+        
+        return temp % 2
+
+Int main():
+        "=== Bit Operations Test ===".println()
+        
+        BitOps ops = BitOps.new()
+        
+        "isPowerOfTwo(16) = %i".println(ops.isPowerOfTwo(16))
+        "isPowerOfTwo(15) = %i".println(ops.isPowerOfTwo(15))
+        "isPowerOfTwo(64) = %i".println(ops.isPowerOfTwo(64))
+        "countBits(7) = %i".println(ops.countBits(7))
+        "countBits(15) = %i".println(ops.countBits(15))
+        "getBit(13,0) = %i".println(ops.getBit(13, 0))
+        "getBit(13,2) = %i".println(ops.getBit(13, 2))
+        
+        return 0

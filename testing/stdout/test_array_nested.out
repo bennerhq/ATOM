@@ -1,0 +1,5 @@
+=== Nested Array Test ===
+inner0: 1 2
+inner1: 3
+inner2 after push: 42 size=1
+outer size=3

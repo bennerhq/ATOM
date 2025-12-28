@@ -1,0 +1,9 @@
+=== Format Demo ===
+Integer: 42
+Negative: -999
+Zero: 0
+Boolean true: true
+Boolean false: false
+String: Hello
+Another: World
+Mixed: 123, test, true

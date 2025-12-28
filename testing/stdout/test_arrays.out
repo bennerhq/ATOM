@@ -1,0 +1,7 @@
+=== Array literal demo ===
+init: 1 2 3
+after set: 1 99 3
+oob high: -1
+oob negative: -1
+empty len read: -1
+after empty set: -1

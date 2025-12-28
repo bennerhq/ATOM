@@ -1,0 +1,36 @@
+# Number edge cases and overflow simulation
+
+NumberTester:
+    Int addLarge(Int a, Int b):
+        return a + b
+    
+    Int multiplyLarge(Int a, Int b):
+        return a * b
+    
+    Int divideChain(Int n):
+        Int result = n
+        result = result / 2
+        result = result / 2
+        result = result / 2
+        return result
+    
+    Int powerOf2(Int exp):
+        Int result = 1
+        Int i = 0
+        while (i < exp):
+            result = result * 2
+            i = i + 1
+        return result
+
+Int main():
+        "=== Number Edge Cases Test ===".println()
+        
+        NumberTester tester = NumberTester.new()
+        
+        "Large addition: %i".println(tester.addLarge(1000000, 2000000))
+        "Large multiply: %i".println(tester.multiplyLarge(1000, 5000))
+        "Divide chain 1000: %i".println(tester.divideChain(1000))
+        "2^10 = %i".println(tester.powerOf2(10))
+        "2^20 = %i".println(tester.powerOf2(20))
+        
+        return 0

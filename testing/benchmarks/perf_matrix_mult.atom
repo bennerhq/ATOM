@@ -1,0 +1,46 @@
+# Matrix multiplication benchmark
+
+MatrixMultBench:
+    Int n
+    Int[][] a
+    Int[][] b
+    Int[][] c
+
+    init(Int n):
+        this.n = n
+        this.a = Int[n][n]
+        this.b = Int[n][n]
+        this.c = Int[n][n]
+        Int i = 0
+        while (i < n):
+            Int j = 0
+            while (j < n):
+                this.a[i][j] = i + j
+                this.b[i][j] = i - j
+                this.c[i][j] = 0
+                j = j + 1
+            i = i + 1
+
+    Int run():
+        Int i = 0
+        while (i < this.n):
+            Int j = 0
+            while (j < this.n):
+                Int k = 0
+                while (k < this.n):
+                    this.c[i][j] = this.c[i][j] + this.a[i][k] * this.b[k][j]
+                    k = k + 1
+                j = j + 1
+            i = i + 1
+        return this.c[0][0]
+
+Int main(String[] args):
+        Int n = 100
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        MatrixMultBench bench = MatrixMultBench.new(n)
+        Int result = bench.run()
+        "N: %i".println(n)
+        "Result: %i".println(result)
+        return 0

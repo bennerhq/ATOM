@@ -1,0 +1,66 @@
+# Advanced: Linked List implementation
+
+Node:
+    Int value = 0
+    Node next = null
+    
+    Int getValue():
+        return this.value
+
+LinkedList:
+    Node head = null
+    Int size = 0
+    
+    Int append(Int val):
+        Node newNode = Node.new()
+        newNode.value = val
+        if (this.head == null):
+            this.head = newNode
+        else:
+            Node current = this.head
+            while (current.next != null):
+                current = current.next
+            current.next = newNode
+        this.size = this.size + 1
+        return this.size
+    
+    Int getAt(Int index):
+        if (index >= this.size):
+            return -1
+        else:
+            Node current = this.head
+            Int i = 0
+            while (i < index):
+                current = current.next
+                i = i + 1
+            return current.getValue()
+    
+    Int getSize():
+        return this.size
+
+Int main():
+        "=== Linked List Test ===".println()
+        "".println()
+        
+        LinkedList list = LinkedList.new()
+        
+        "Adding elements:".println()
+        list.append(10)
+        list.append(20)
+        list.append(30)
+        list.append(40)
+        list.append(50)
+        "Added 5 elements".println()
+        "".println()
+        
+        "List size: %i".println(list.getSize())
+        "".println()
+        
+        "Retrieving elements by index:".println()
+        "Index 0: %i".println(list.getAt(0))
+        "Index 1: %i".println(list.getAt(1))
+        "Index 2: %i".println(list.getAt(2))
+        "Index 3: %i".println(list.getAt(3))
+        "Index 4: %i".println(list.getAt(4))
+        
+        return 0

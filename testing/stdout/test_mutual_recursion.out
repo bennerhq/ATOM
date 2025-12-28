@@ -1,0 +1,6 @@
+=== Mutual Recursion Test ===
+isEven(4) = 1
+isOdd(4) = 0
+isEven(7) = 0
+isOdd(7) = 1
+isEven(0) = 1

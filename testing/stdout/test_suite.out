@@ -1,0 +1,41 @@
+========================================
+    Atom Language Test Suite
+========================================
+=== Arithmetic Operations ===
+5 + 3 = 8
+10 - 4 = 6
+6 * 7 = 42
+20 / 4 = 5
+
+=== Comparison Operations ===
+5 < 10: true
+10 > 5: true
+5 == 5: true
+5 != 10: true
+5 <= 5: true
+10 >= 5: true
+
+=== Negative Numbers ===
+Negative: -42
+Double negative: 42
+-100 + 50 = -50
+
+=== String Operations ===
+Simple string
+String with format: embedded
+Multiple strings: foo and bar
+
+=== If Statements ===
+x > 5: true
+x < 5: false
+
+=== While Loop ===
+Sum 0-4: 10
+
+=== Object Creation ===
+Object 1 value: 42
+Object 2 value: 100
+
+========================================
+    All Tests Completed!
+========================================

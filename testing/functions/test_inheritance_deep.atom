@@ -1,0 +1,41 @@
+# Test complex inheritance with method overrides
+
+Animal:
+    virtualInt speak():
+        return 0
+
+Dog: Animal:
+    Int speak():
+        "Woof!".println()
+        return 1
+
+Cat: Animal:
+    Int speak():
+        "Meow!".println()
+        return 2
+
+Bird: Animal:
+    Int speak():
+        "Tweet!".println()
+        return 3
+
+Int main():
+        "=== Inheritance and Override Test ===".println()
+        "".println()
+        
+        Dog dog = Dog.new()
+        Cat cat = Cat.new()
+        Bird bird = Bird.new()
+        
+        "Dog says:".println()
+        dog.speak()
+        "".println()
+        
+        "Cat says:".println()
+        cat.speak()
+        "".println()
+        
+        "Bird says:".println()
+        bird.speak()
+        
+        return 0

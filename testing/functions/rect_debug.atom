@@ -1,0 +1,28 @@
+Point:
+    Int x
+    Int y
+
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+Rectangle:
+    Point topLeft
+    Point bottomRight
+
+    init(Int x1, Int y1, Int x2, Int y2):
+        this.topLeft = Point.new(x1, y1)
+        this.bottomRight = Point.new(x2, y2)
+
+Int main():
+        Rectangle rect = Rectangle.new(0, 10, 5, 0)
+        
+        "topLeft ptr: %i".println(rect.topLeft)
+        "bottomRight ptr: %i".println(rect.bottomRight)
+        
+        "topLeft.x: %i".println(rect.topLeft.x)
+        "topLeft.y: %i".println(rect.topLeft.y)
+        "bottomRight.x: %i".println(rect.bottomRight.x)
+        "bottomRight.y: %i".println(rect.bottomRight.y)
+        
+        return 0

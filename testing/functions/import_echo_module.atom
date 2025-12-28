@@ -1,0 +1,5 @@
+# Echo module - demonstrating modular code with imports
+
+Echo:
+    make(String s):
+        s.println()

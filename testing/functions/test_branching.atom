@@ -1,0 +1,41 @@
+# Complex conditional branching
+
+PathFinder:
+    Int navigate(Int x, Int y, Int z):
+        Int path = 0
+        if (x > 10):
+            if (y > 10):
+                if (z > 10):
+                    path = 111
+                else:
+                    path = 110
+            else:
+                if (z > 10):
+                    path = 101
+                else:
+                    path = 100
+        else:
+            if (y > 10):
+                if (z > 10):
+                    path = 11
+                else:
+                    path = 10
+            else:
+                if (z > 10):
+                    path = 1
+                else:
+                    path = 0
+        return path
+
+Int main():
+        "=== Complex Branching Test ===".println()
+        
+        PathFinder finder = PathFinder.new()
+        
+        "navigate(15,15,15) = %i".println(finder.navigate(15, 15, 15))
+        "navigate(15,15,5) = %i".println(finder.navigate(15, 15, 5))
+        "navigate(15,5,15) = %i".println(finder.navigate(15, 5, 15))
+        "navigate(5,15,15) = %i".println(finder.navigate(5, 15, 15))
+        "navigate(5,5,5) = %i".println(finder.navigate(5, 5, 5))
+        
+        return 0

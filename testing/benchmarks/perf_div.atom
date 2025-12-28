@@ -1,0 +1,42 @@
+# Division-heavy benchmark
+
+DivBench:
+    Int wrap
+    Int iterations
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int step(Int acc, Int i):
+        Int a = i / 3
+        Int b = i / 5
+        acc = acc + a - b
+        if (acc < 0) { acc = acc + this.wrap }
+        if (acc > this.wrap) { acc = acc - this.wrap }
+        return acc
+
+    Int run():
+        Int i = 0
+        Int acc = 0
+        while (i < this.iterations):
+            acc = this.step(acc, i)
+            i = i + 1
+
+        return acc
+
+Int main(String[] args):
+        Int iterations = 100000000
+        Int wrap = 1000000
+        Int argc = args.count()
+        if (argc > 0):
+            iterations = args.getInt(0)
+        if (argc > 1):
+            wrap = args.getInt(1)
+        DivBench bench = DivBench.new(iterations, wrap)
+        Int checksum = bench.run()
+        "Iterations: %i".println(iterations)
+        "Wrap: %i".println(wrap)
+        "Checksum: %i".println(checksum)
+        return 0
+ 

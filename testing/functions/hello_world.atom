@@ -1,0 +1,5 @@
+# Hello World in Atom - Pure OO style!
+
+Int main():
+        "Hello, World!".println()
+        return 0

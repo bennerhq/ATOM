@@ -1,0 +1,44 @@
+# Branch-heavy benchmark
+
+BranchBench:
+    Int wrap
+    Int iterations
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int run():
+        Int i = 0
+        Int acc = 0
+
+        while (i < this.iterations):
+            Int rem2 = i - (i / 2) * 2
+            if (rem2 == 0):
+                acc = acc + i
+            else:
+                acc = acc - i
+            if (acc < 0):
+                acc = acc + this.wrap
+            if (acc > this.wrap):
+                acc = acc - this.wrap
+            i = i + 1
+        return acc
+
+Int main(String[] args):
+        Int iterations = 100000000
+        Int wrap = 1000000
+        Int argc = args.count()
+        if (argc > 0):
+            iterations = args.getInt(0)
+        if (argc > 1):
+            wrap = args.getInt(1)
+ 
+        BranchBench bench = BranchBench.new(iterations, wrap)
+        Int checksum = bench.run()
+
+        "Iterations: %i".println(iterations)
+        "Wrap: %i".println(wrap)
+        "Checksum: %i".println(checksum)
+
+        return 0

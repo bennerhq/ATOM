@@ -1,0 +1,63 @@
+# Advanced: Deep object nesting simplified
+
+Config:
+    Int value = 100
+
+Database:
+    Config config = null
+    
+    Int initialize():
+        Config cfg = Config.new()
+        cfg.value = 50
+        this.config = cfg
+        return 0
+    
+    Int getValue():
+        if (this.config == null):
+            return 0
+        else:
+            return this.config.value
+
+Service:
+    Database db = null
+    
+    Int startup():
+        Database database = Database.new()
+        database.initialize()
+        this.db = database
+        return 1
+    
+    Int fetchValue():
+        if (this.db == null):
+            return -1
+        else:
+            return this.db.getValue()
+
+Application:
+    Service service = null
+    
+    Int run():
+        Service svc = Service.new()
+        svc.startup()
+        this.service = svc
+        return 0
+
+Int main():
+        "=== Deep Object Nesting Test ===".println()
+        "".println()
+        
+        Application app = Application.new()
+        app.run()
+        
+        "Application initialized".println()
+        
+        Int val = app.service.fetchValue()
+        "Config value from nested chain: %i".println(val)
+        "".println()
+        
+        "Test nested object access:".println()
+        Service s = app.service
+        Int result = s.fetchValue()
+        "Fetched value: %i".println(result)
+        
+        return 0

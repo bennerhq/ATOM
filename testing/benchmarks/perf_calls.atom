@@ -1,0 +1,39 @@
+# Method-call overhead benchmark
+
+CallBench:
+    Int wrap
+    Int iterations
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int tick(Int acc, Int i):
+        acc = acc + i
+        if (acc > this.wrap):
+            acc = acc - this.wrap
+        return acc
+
+    Int run():
+        Int i = 0
+        Int acc = 0
+        while (i < this.iterations):
+            acc = this.tick(acc, i)
+            i = i + 1
+
+        return acc
+
+Int main(String[] args):
+        Int iterations = 100000000
+        Int wrap = 1000000
+        Int argc = args.count()
+        if (argc > 0):
+            iterations = args.getInt(0)
+        if (argc > 1):
+            wrap = args.getInt(1)
+        CallBench bench = CallBench.new(iterations, wrap)
+        Int checksum = bench.run()
+        "Iterations: %i".println(iterations)
+        "Wrap: %i".println(wrap)
+        "Checksum: %i".println(checksum)
+        return 0

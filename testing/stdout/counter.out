@@ -1,0 +1,7 @@
+=== Counter Test ===
+Initial: 0
+After increment: 1
+After 2 more increments: 3
+After decrement: 2
+After setValue(42): 42
+After reset: 0

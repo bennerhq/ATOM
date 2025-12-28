@@ -1,0 +1,36 @@
+# Array storing class instances (objects)
+
+Point:
+    Int x
+    Int y
+
+    void init(Int ix, Int iy):
+        this.x = ix
+        this.y = iy
+
+    Int getX():
+        return this.x
+
+    Int getY():
+        return this.y
+
+    Int sum():
+        return this.x + this.y
+
+Int main():
+        "=== Array of Objects Test ===".println()
+
+        Array points = []
+        points.push(Point.new(1, 2))
+        points.push(Point.new(3, 4))
+        points.push(Point.new(5, 6))
+        "size=%i".println(points.size())
+
+        Point p0 = points[0]
+        Point p1 = points[1]
+        Point p2 = points[2]
+        "p0: %i %i %i".println(p0.getX(), p0.getY(), p0.sum())
+        "p1: %i %i %i".println(p1.getX(), p1.getY(), p1.sum())
+        "p2: %i %i %i".println(p2.getX(), p2.getY(), p2.sum())
+
+        return 0

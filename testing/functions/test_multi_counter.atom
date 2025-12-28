@@ -1,0 +1,38 @@
+# Testing loops with multiple counters and conditions
+
+Counter:
+    Int twoCounters():
+        Int i = 0
+        Int j = 10
+        Int sum = 0
+        
+        while (i < 10):
+            sum = sum + i + j
+            i = i + 1
+            j = j - 1
+        
+        return sum
+    
+    Int tripleCounter():
+        Int a = 0
+        Int b = 5
+        Int c = 10
+        Int result = 0
+        
+        while (a < 5):
+            result = result + a * 100 + b * 10 + c
+            a = a + 1
+            b = b + 1
+            c = c - 2
+        
+        return result
+
+Int main():
+        "=== Multi-Counter Loop Test ===".println()
+        
+        Counter counter = Counter.new()
+        
+        "twoCounters: %i".println(counter.twoCounters())
+        "tripleCounter: %i".println(counter.tripleCounter())
+        
+        return 0

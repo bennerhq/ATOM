@@ -1,0 +1,32 @@
+# Array sum benchmark
+
+ArraySumBench:
+    Int size
+    Int[] arr
+
+    init(Int size):
+        this.size = size
+        this.arr = Int[size]
+        Int i = 0
+        while (i < size):
+            this.arr[i] = i
+            i = i + 1
+
+    Int run():
+        Int sum = 0
+        Int i = 0
+        while (i < this.size):
+            sum = sum + this.arr[i]
+            i = i + 1
+        return sum
+
+Int main(String[] args):
+        Int size = 10000000
+        Int argc = args.count()
+        if (argc > 0):
+            size = args.getInt(0)
+        ArraySumBench bench = ArraySumBench.new(size)
+        Int checksum = bench.run()
+        "Size: %i".println(size)
+        "Checksum: %i".println(checksum)
+        return 0

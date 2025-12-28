@@ -1,0 +1,18 @@
+=== Advanced Algorithm Test ===
+
+Collatz conjecture sequence length:
+collatz(1) = 0
+collatz(5) = 5
+collatz(10) = 6
+collatz(27) = 111
+
+Number with longest Collatz sequence below 50:
+Number: 27
+
+Divisor counting:
+divisors(12) = 6
+divisors(20) = 6
+
+Sum of digits:
+sumDigits(123) = 6
+sumDigits(9999) = 36

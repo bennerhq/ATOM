@@ -1,0 +1,114 @@
+# Comprehensive test suite demonstrating all working features
+
+MathOps:
+    Int testArithmetic():
+        String title1 = "=== " + "Arithmetic Operations" + " ==="
+        title1.println()
+        String arith1 = "5 + 3 = " + "%i"
+        arith1.println(5 + 3)
+        String arith2 = "10 - 4 = " + "%i"
+        arith2.println(10 - 4)
+        String arith3 = "6 * 7 = " + "%i"
+        arith3.println(6 * 7)
+        String arith4 = "20 / 4 = " + "%i"
+        arith4.println(20 / 4)
+        return 0
+    
+    Int testComparison():
+        "".println()
+        String title2 = "=== " + "Comparison Operations" + " ==="
+        title2.println()
+        String cmp1 = "5 < 10: " + "%b"
+        cmp1.println(5 < 10)
+        String cmp2 = "10 > 5: " + "%b"
+        cmp2.println(10 > 5)
+        String cmp3 = "5 == 5: " + "%b"
+        cmp3.println(5 == 5)
+        String cmp4 = "5 != 10: " + "%b"
+        cmp4.println(5 != 10)
+        String cmp5 = "5 <= 5: " + "%b"
+        cmp5.println(5 <= 5)
+        "10 >= 5: %b".println(10 >= 5)
+        return 0
+    
+    Int testNegatives():
+        "".println()
+        "=== Negative Numbers ===".println()
+        Int neg = -42
+        "Negative: %i".println(neg)
+        "Double negative: %i".println(0 - neg)
+        "-100 + 50 = %i".println(-100 + 50)
+        return 0
+
+StringOps:
+    Int testStrings():
+        "".println()
+        "=== String Operations ===".println()
+        "Simple string".println()
+        "String with format: %s".println("embedded")
+        "Multiple strings: %s and %s".println("foo", "bar")
+        return 0
+
+ControlFlow:
+    Int testIf():
+        "".println()
+        "=== If Statements ===".println()
+        Int x = 10
+        if (x > 5):
+            "x > 5: true".println()
+        if (x < 5):
+            "x < 5: true".println()
+        else:
+            "x < 5: false".println()
+        return 0
+    
+    Int testWhile():
+        "".println()
+        "=== While Loop ===".println()
+        Int i = 0
+        Int sum = 0
+        while (i < 5):
+            sum = sum + i
+            i = i + 1
+        "Sum 0-4: %i".println(sum)
+        return 0
+
+ObjectOps:
+    Int value
+    
+    init(Int val):
+        this.value = val
+    
+    Int getValue():
+        return this.value
+
+Int main():
+        "========================================".println()
+        "    Atom Language Test Suite".println()
+        "========================================".println()
+        
+        MathOps math = MathOps.new()
+        Int dummy1 = math.testArithmetic()
+        Int dummy2 = math.testComparison()
+        Int dummy3 = math.testNegatives()
+        
+        StringOps str = StringOps.new()
+        Int dummy4 = str.testStrings()
+        
+        ControlFlow ctrl = ControlFlow.new()
+        Int dummy5 = ctrl.testIf()
+        Int dummy6 = ctrl.testWhile()
+        
+        "".println()
+        "=== Object Creation ===".println()
+        ObjectOps obj1 = ObjectOps.new(42)
+        ObjectOps obj2 = ObjectOps.new(100)
+        "Object 1 value: %i".println(obj1.value)
+        "Object 2 value: %i".println(obj2.value)
+        
+        "".println()
+        "========================================".println()
+        "    All Tests Completed!".println()
+        "========================================".println()
+        
+        return 0

@@ -1,0 +1,21 @@
+Rectangle:
+    Int width
+    Int height
+    
+    init(Int w, Int h):
+        width = w
+        height = h
+    
+    Int area():
+        return width * height
+    
+    Int perimeter():
+        return (width + height) * 2
+
+Int main():
+        Rectangle r = Rectangle.new()
+        r.init(5, 3)
+        Int a = r.area()
+        Int p = r.perimeter()
+        "return %i".println(a + p)
+        return 0

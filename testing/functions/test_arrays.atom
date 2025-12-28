@@ -1,0 +1,16 @@
+Int main():
+        "=== Array literal demo ===".println()
+
+        Array a = [1, 2, 3]
+        "init: %i %i %i".println(a[0], a[1], a[2])
+
+        a[1] = 99
+        "after set: %i %i %i".println(a[0], a[1], a[2])
+
+        "oob high: %i".println(a[5])
+        "oob negative: %i".println(a[-1])
+
+        Array empty = []
+        "empty len read: %i".println(empty[0])
+        empty[0] = 7
+        "after empty set: %i".println(empty[0])

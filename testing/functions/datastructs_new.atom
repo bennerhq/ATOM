@@ -1,0 +1,38 @@
+Matrix:
+    Int rows
+    Int cols
+    
+    init(Int r, Int c):
+        rows = r
+        cols = c
+    
+    Int getRows():
+        return rows
+    
+    Int getCols():
+        return cols
+    
+    Int area():
+        return rows * cols
+
+Node:
+    Int value
+    
+    init(Int v):
+        value = v
+    
+    Int getValue():
+        return value
+
+Int main():
+        Matrix m = Matrix.new()
+        m.init(10, 20)
+        Int area = m.area()
+        
+        Node node = Node.new()
+        node.init(42)
+        Int val = node.getValue()
+        
+        "return %i".println(area + val)
+ 
+        return 0

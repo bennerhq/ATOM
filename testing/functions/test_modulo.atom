@@ -1,0 +1,11 @@
+# Simple modulo regression
+
+Int main():
+        "=== Modulo Test ===".println()
+        "5%2=%i".println(5 % 2)
+        "4%2=%i".println(4 % 2)
+        "7%5=%i".println(7 % 5)
+        "10%3=%i".println(10 % 3)
+        "0%3=%i".println(0 % 3)
+        "prec=%i".println(7 % 4 * 3)
+        return 0

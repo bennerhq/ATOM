@@ -1,0 +1,63 @@
+# Test complex nested loops and control structures
+
+Sorter:
+    Int bubbleSort(Int a, Int b, Int c):
+        if (a > b):
+            Int temp = a
+            a = b
+            b = temp
+        if (b > c):
+            Int temp2 = b
+            b = c
+            c = temp2
+        if (a > b):
+            Int temp3 = a
+            a = b
+            b = temp3
+        return a * 100 + b * 10 + c
+    
+    Int countFactors(Int n):
+        Int count = 0
+        Int i = 1
+        while (i <= n):
+            if (n - (n / i) * i == 0):
+                count = count + 1
+            else:
+                i = i + 1
+            i = i + 1
+        return count
+
+Matrix:
+    Int multiplyMatrices():
+        Int sum = 0
+        Int i = 0
+        while (i < 3):
+            Int j = 0
+            while (j < 3):
+                sum = sum + i + j
+                j = j + 1
+            i = i + 1
+        return sum
+
+Int main():
+        "=== Nested Control Flow Test ===".println()
+        "".println()
+        
+        Sorter sorter = Sorter.new()
+        Matrix matrix = Matrix.new()
+        
+        "Sorting three numbers:".println()
+        "bubbleSort(5, 3, 7) = %i".println(sorter.bubbleSort(5, 3, 7))
+        "bubbleSort(9, 1, 5) = %i".println(sorter.bubbleSort(9, 1, 5))
+        "bubbleSort(2, 8, 4) = %i".println(sorter.bubbleSort(2, 8, 4))
+        "".println()
+        
+        "Counting factors:".println()
+        "countFactors(12) = %i".println(sorter.countFactors(12))
+        "countFactors(20) = %i".println(sorter.countFactors(20))
+        "".println()
+        
+        "Matrix operations (sum of indices):".println()
+        "multiplyMatrices() = %i".println(matrix.multiplyMatrices())
+        
+        return 0

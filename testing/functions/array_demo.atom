@@ -1,0 +1,160 @@
+IntArrayBucket:
+    Int n0 = 0
+    Int n1 = 0
+    Int n2 = 0
+    Int n3 = 0
+    Int n4 = 0
+    Int n5 = 0
+    Int n6 = 0
+    Int n7 = 0
+    IntArrayBucket next = null
+
+    Int getAtOffset(Int off):
+        if (off == 0):
+            return n0
+        else:
+            if (off == 1):
+                return n1
+            else:
+                if (off == 2):
+                    return n2
+                else:
+                    if (off == 3):
+                        return n3
+                    else:
+                        if (off == 4):
+                            return n4
+                        else:
+                            if (off == 5):
+                                return n5
+                            else:
+                                if (off == 6):
+                                    return n6
+                                else:
+                                    return n7
+
+    void setAtOffset(Int off, Int v):
+        if (off == 0):
+            n0 = v
+        else:
+            if (off == 1):
+                n1 = v
+            else:
+                if (off == 2):
+                    n2 = v
+                else:
+                    if (off == 3):
+                        n3 = v
+                    else:
+                        if (off == 4):
+                            n4 = v
+                        else:
+                            if (off == 5):
+                                n5 = v
+                            else:
+                                if (off == 6):
+                                    n6 = v
+                                else:
+                                    n7 = v
+
+IntArray:
+    IntArrayBucket head = null
+    IntArrayBucket tail = null
+    Int length = 0
+
+    void ensureCapacityForPush():
+        if (this.tail == null):
+            IntArrayBucket b = IntArrayBucket.new()
+            this.head = b
+            this.tail = b
+        else:
+            Int rem = this.length % 8
+            if (rem == 0):
+                IntArrayBucket nb = IntArrayBucket.new()
+                this.tail.next = nb
+                this.tail = nb
+
+    Int size():
+        return this.length
+
+    Int push(Int v):
+        this.ensureCapacityForPush()
+        Int off = this.length % 8
+        this.tail.setAtOffset(off, v)
+        this.length = this.length + 1
+        return this.length
+
+    Int get(Int index):
+        if (index >= this.length):
+            return -1
+        else:
+            Int bucketIndex = index / 8
+            Int off = index % 8
+            Int i = 0
+            IntArrayBucket b = this.head
+            while (i < bucketIndex):
+                b = b.next
+                i = i + 1
+            return b.getAtOffset(off)
+
+    void set(Int index, Int v):
+        if (index >= this.length):
+            return
+        else:
+            Int bucketIndex = index / 8
+            Int off = index % 8
+            Int i = 0
+            IntArrayBucket b = this.head
+            while (i < bucketIndex):
+                b = b.next
+                i = i + 1
+            b.setAtOffset(off, v)
+
+    Int pop():
+        if (this.length == 0):
+            return -1
+        else:
+            this.length = this.length - 1
+            Int bucketIndex = this.length / 8
+            Int off = this.length % 8
+            Int i = 0
+            IntArrayBucket b = this.head
+            IntArrayBucket prev = null
+            while (i < bucketIndex):
+                prev = b
+                b = b.next
+                i = i + 1
+            Int val = b.getAtOffset(off)
+            b.setAtOffset(off, 0)
+            if (off == 0):
+                if (bucketIndex == 0):
+                    if (this.length == 0):
+                        this.head = null
+                        this.tail = null
+                else:
+                    this.tail = prev
+                    this.tail.next = null
+            return val
+
+Int main():
+    "=== IntArray (OO) Demo ===".println()
+    "".println()
+
+    IntArray arr = IntArray.new()
+    "Pushing elements:".println()
+    arr.push(10)
+    arr.push(20)
+    arr.push(30)
+    "Size: %i".println(arr.size())
+
+    "Index 0: %i".println(arr.get(0))
+    "Index 1: %i".println(arr.get(1))
+    "Index 2: %i".println(arr.get(2))
+
+    "Set idx 1 -> %i".println(99)
+    arr.set(1, 99)
+    "Index 1: %i".println(arr.get(1))
+
+    "Popped: %i".println(arr.pop())
+
+    return 0

@@ -1,0 +1,13 @@
+=== Complex Expressions Test ===
+
+GCD and LCM:
+gcd(48, 18) = 6
+lcm(12, 18) = 36
+gcd(100, 50) = 50
+
+Prime numbers:
+isPrime(2) = 1
+isPrime(13) = 1
+isPrime(17) = 1
+isPrime(15) = 0
+isPrime(1) = 0

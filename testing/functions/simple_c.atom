@@ -1,0 +1,12 @@
+# Simple C-compatible test - no instantiation
+
+Int main():
+        "=== Simple Test ===".println()
+        
+        Int x = 3
+        Int y = 4
+        "x = %i".println(x)
+        "y = %i".println(y)
+        "x + y = %i".println(x + y)
+        
+        return 0

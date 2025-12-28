@@ -1,0 +1,8 @@
+TestVoid:
+    test():
+        "hello".println()
+
+Int main():
+        TestVoid t = TestVoid.new()
+        t.test()
+        return 0

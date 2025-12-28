@@ -1,0 +1,6 @@
+Int main():
+        "Hello ".print()
+        "World".println()
+        "Value: ".print()
+        "%i".println(42)
+        return 0

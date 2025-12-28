@@ -1,0 +1,474 @@
+# Combined Inheritance and Inner Example
+# Shows how inheritance and the inner keyword work together beautifully
+
+# ===== HTTP Middleware Pattern =====
+
+# Base request handler
+HttpHandler:
+    Int statusCode
+    
+    init():
+        this.statusCode = 200
+    
+    # Template method - defines request processing pipeline
+    Int handle():
+        # Every request starts with connection setup
+        Int connected = 1
+        
+        # Extension point for middleware/handlers
+        inner
+        
+        # Every request ends with logging
+        Int logged = 1
+        
+        return this.statusCode
+
+# Authentication middleware - first layer
+AuthHandler: HttpHandler:
+    Int authToken
+    
+    init(Int token):
+        this.statusCode = 200
+        this.authToken = token
+    
+    virtualInt handle():
+        # Add authentication layer
+        Int authenticated = this.authenticate()
+        
+        if (authenticated == 0):
+            this.statusCode = 401
+            return 401
+        
+        # Continue to next layer
+        inner
+        
+        # Auth cleanup
+        Int authCleanup = 1
+        
+        return this.statusCode
+    
+    Int authenticate():
+        if (this.authToken > 0):
+            return 1
+        return 0
+
+# Rate limiting middleware - second layer
+RateLimitHandler: AuthHandler:
+    Int requestCount
+    Int limit
+    
+    init(Int token, Int limit):
+        this.statusCode = 200
+        this.authToken = token
+        this.limit = limit
+        this.requestCount = 0
+    
+    virtualInt handle():
+        # Add rate limiting layer
+        if (this.requestCount >= this.limit):
+            this.statusCode = 429
+            return 429
+        
+        this.requestCount = this.requestCount + 1
+        
+        # Continue to next layer
+        inner
+        
+        return this.statusCode
+
+# Actual request handler - final layer
+ApiHandler: RateLimitHandler:
+    Int endpoint
+    
+    init(Int token, Int limit, Int endpoint):
+        this.statusCode = 200
+        this.authToken = token
+        this.limit = limit
+        this.requestCount = 0
+        this.endpoint = endpoint
+    
+    Int handle():
+        # The actual API logic
+        Int result = this.processRequest()
+        
+        if (result == 0):
+            this.statusCode = 500
+            return 500
+        
+        # No more inner calls - end of chain
+        
+        return this.statusCode
+    
+    Int processRequest():
+        return this.endpoint
+
+# ===== Game Entity Hierarchy with Behaviors =====
+
+GameEntity:
+    Int x
+    Int y
+    Int health
+    
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+        this.health = 100
+    
+    # Template for entity updates
+    Int update():
+        # Base update logic
+        Int time = 1
+        
+        # Entity-specific updates
+        inner
+        
+        # Collision detection
+        Int collisions = 0
+        
+        return 0
+    
+    move(Int dx, Int dy):
+        this.x = this.x + dx
+        this.y = this.y + dy
+
+Character: GameEntity:
+    Int speed
+    Int stamina
+    
+    init(Int x, Int y, Int speed):
+        this.x = x
+        this.y = y
+        this.health = 100
+        this.speed = speed
+        this.stamina = 100
+    
+    Int update():
+        # Character-specific updates
+        Int staminaRegen = 1
+        this.stamina = this.stamina + staminaRegen
+        
+        if (this.stamina > 100):
+            this.stamina = 100
+        
+        # Allow further specialization
+        inner
+        
+        return 0
+
+Player: Character:
+    Int score
+    Int inventory
+    
+    init(Int x, Int y, Int speed):
+        this.x = x
+        this.y = y
+        this.health = 100
+        this.speed = speed
+        this.stamina = 100
+        this.score = 0
+        this.inventory = 0
+    
+    Int update():
+        # Player-specific updates
+        Int inputProcessed = this.processInput()
+        
+        # Allow even more specialization (e.g., PoweredUpPlayer)
+        inner
+        
+        # Update UI
+        Int uiUpdated = 1
+        
+        return inputProcessed
+    
+    Int processInput():
+        return 1
+
+Enemy: Character:
+    Int aggroRange
+    Int damage
+    
+    init(Int x, Int y, Int speed, Int range):
+        this.x = x
+        this.y = y
+        this.health = 100
+        this.speed = speed
+        this.stamina = 100
+        this.aggroRange = range
+        this.damage = 10
+    
+    Int update():
+        # AI behavior
+        Int aiDecision = this.makeDecision()
+        
+        inner
+        
+        return aiDecision
+    
+    Int makeDecision():
+        return this.aggroRange
+
+# ===== Database Transaction Pattern =====
+
+Transaction:
+    Int id
+    Int status
+    
+    init(Int id):
+        this.id = id
+        this.status = 0
+    
+    Int execute():
+        # Begin transaction
+        this.status = 1
+        Int begun = 1
+        
+        # Actual transaction operations
+        inner
+        
+        # Commit or rollback
+        if (this.status == 1):
+            Int committed = 1
+            return 1
+        
+        Int rolledback = 1
+        return 0
+
+UserTransaction: Transaction:
+    Int userId
+    Int operation
+    
+    init(Int id, Int userId, Int op):
+        this.id = id
+        this.status = 0
+        this.userId = userId
+        this.operation = op
+    
+    Int execute():
+        # User validation
+        Int validated = this.validateUser()
+        
+        if (validated == 0):
+            this.status = 0
+            return 0
+        
+        # Continue transaction
+        inner
+        
+        return 1
+    
+    Int validateUser():
+        if (this.userId > 0):
+            return 1
+        return 0
+
+SecureUserTransaction: UserTransaction:
+    Int encryptionKey
+    Int signature
+    
+    init(Int id, Int userId, Int op, Int key):
+        this.id = id
+        this.status = 0
+        this.userId = userId
+        this.operation = op
+        this.encryptionKey = key
+        this.signature = 0
+    
+    Int execute():
+        # Encryption and signing
+        Int encrypted = this.encrypt()
+        this.signature = this.sign()
+        
+        # Continue with parent logic
+        inner
+        
+        # Verify after completion
+        Int verified = this.verify()
+        
+        if (verified == 0):
+            this.status = 0
+            return 0
+        
+        return 1
+    
+    Int encrypt():
+        return this.encryptionKey
+    
+    Int sign():
+        return this.userId + this.encryptionKey
+    
+    Int verify():
+        if (this.signature > 0):
+            return 1
+        return 0
+
+# ===== Event System with Propagation =====
+
+Event:
+    Int type
+    Int timestamp
+    Int propagated
+    
+    init(Int type):
+        this.type = type
+        this.timestamp = 1000
+        this.propagated = 0
+    
+    Int propagate():
+        # Pre-propagation
+        Int validated = 1
+        
+        # Event-specific propagation
+        inner
+        
+        # Mark as propagated
+        this.propagated = 1
+        
+        return 1
+
+UserEvent: Event:
+    Int userId
+    
+    init(Int type, Int userId):
+        this.type = type
+        this.timestamp = 1000
+        this.propagated = 0
+        this.userId = userId
+    
+    Int propagate():
+        # Enrich with user data
+        Int enriched = this.userId
+        
+        inner
+        
+        # Notify user
+        Int notified = 1
+        
+        return 1
+
+AuditedUserEvent: UserEvent:
+    Int auditId
+    
+    init(Int type, Int userId):
+        this.type = type
+        this.timestamp = 1000
+        this.propagated = 0
+        this.userId = userId
+        this.auditId = 0
+    
+    Int propagate():
+        # Create audit record
+        this.auditId = this.createAudit()
+        
+        inner
+        
+        # Close audit record
+        Int auditClosed = 1
+        
+        return this.auditId
+    
+    Int createAudit():
+        return this.userId + this.timestamp
+
+# ===== Main Test Class =====
+
+Calling:
+    testHttpMiddleware():
+        # Test basic handler
+        HttpHandler basicHandler = HttpHandler()
+        Int result1 = basicHandler.handle()
+        
+        # Test with authentication
+        AuthHandler authHandler = AuthHandler(123)
+        Int result2 = authHandler.handle()
+        
+        # Test with failed auth
+        AuthHandler failedAuth = AuthHandler(0)
+        Int result3 = failedAuth.handle()
+        
+        # Test rate limiting
+        RateLimitHandler rateLimiter = RateLimitHandler(456, 3)
+        Int result4 = rateLimiter.handle()
+        Int result5 = rateLimiter.handle()
+        Int result6 = rateLimiter.handle()
+        Int result7 = rateLimiter.handle()
+        
+        # Test full API handler
+        ApiHandler api = ApiHandler(789, 5, 100)
+        Int result8 = api.handle()
+        Int result9 = api.handle()
+
+        "return %i %i %i %i %i %i %i %i %i".println(result1, result2, result3, result4, result5, result6, result7, result8, result9)
+    
+    testGameEntities():
+        # Test base entity
+        GameEntity entity = GameEntity(10, 20)
+        Int update1 = entity.update()
+        entity.move(5, 5)
+        
+        # Test character
+        Character character = Character(100, 200, 10)
+        Int update2 = character.update()
+        character.move(10, 10)
+        
+        # Test player
+        Player player = Player(50, 50, 15)
+        Int update3 = player.update()
+        player.move(2, 3)
+        
+        # Test enemy
+        Enemy enemy = Enemy(300, 400, 8, 50)
+        Int update4 = enemy.update()
+        enemy.move(1, 1)
+
+        "return %i %i %i %i".println(update1, update2, update3, update4)
+    
+    testTransactions():
+        # Test base transaction
+        Transaction trans = Transaction(1)
+        Int exec1 = trans.execute()
+        
+        # Test user transaction
+        UserTransaction userTrans = UserTransaction(2, 100, 1)
+        Int exec2 = userTrans.execute()
+        
+        # Test failed user transaction
+        UserTransaction failedTrans = UserTransaction(3, 0, 1)
+        Int exec3 = failedTrans.execute()
+        
+        # Test secure transaction
+        SecureUserTransaction secureTrans = SecureUserTransaction(4, 200, 2, 999)
+        Int exec4 = secureTrans.execute()
+
+        "return %i %i %i %i".println(exec1, exec2, exec3, exec4)
+    
+    testEventSystem():
+        # Test base event
+        Event event = Event(1)
+        Int prop1 = event.propagate()
+        
+        # Test user event
+        UserEvent userEvent = UserEvent(2, 500)
+        Int prop2 = userEvent.propagate()
+        
+        # Test audited user event
+        AuditedUserEvent auditEvent = AuditedUserEvent(3, 600)
+        Int prop3 = auditEvent.propagate()
+
+        "return %i %i %i".println(prop1, prop2, prop3)
+
+Int main():
+        Calling call = Calling.new()
+        
+        # Test HTTP Middleware Pattern
+        call.testHttpMiddleware()
+        
+        # Test Game Entity Hierarchy
+        call.testGameEntities()
+        
+        # Test Database Transaction Pattern
+        call.testTransactions()
+        
+        # Test Event System
+        call.testEventSystem()
+
+        return 0

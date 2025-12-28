@@ -1,0 +1,55 @@
+# Nested conditionals with early returns
+
+Validator:
+    Int validate(Int a, Int b, Int c):
+        if (a < 0):
+            return -1
+        
+        if (b < 0):
+            return -2
+        
+        if (c < 0):
+            return -3
+        
+        if (a > b):
+            if (a > c):
+                return a
+            return c
+        
+        if (b > c):
+            return b
+        
+        return c
+    
+    Int process(Int x):
+        if (x == 0):
+            return 0
+        
+        if (x < 0):
+            if (x < -10):
+                return -100
+            return x * 2
+        
+        if (x > 100):
+            return 100
+        
+        if (x % 2 == 0):
+            return x / 2
+        
+        return x * 3
+
+Int main():
+        "=== Early Return Test ===".println()
+        
+        Validator v = Validator.new()
+        
+        "validate(5,3,7) = %i".println(v.validate(5, 3, 7))
+        "validate(-1,3,7) = %i".println(v.validate(-1, 3, 7))
+        "validate(5,-3,7) = %i".println(v.validate(5, -3, 7))
+        "process(0) = %i".println(v.process(0))
+        "process(-5) = %i".println(v.process(-5))
+        "process(-15) = %i".println(v.process(-15))
+        "process(10) = %i".println(v.process(10))
+        "process(7) = %i".println(v.process(7))
+        
+        return 0

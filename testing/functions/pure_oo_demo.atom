@@ -1,0 +1,36 @@
+# Pure OO Philosophy Demo - Everything is a message!
+
+Greeter:
+    String name
+    
+    setName(String n):
+        this.name = n
+    
+    greet():
+        "Hello, ".print()
+        this.name.print()
+        "!".println()
+
+Int main():
+        "=== Atom: Pure Object-Oriented ===".println()
+        "".println()
+        
+        "In Atom, everything is an object.".println()
+        "Even strings respond to messages!".println()
+        "".println()
+        
+        "Examples:".println()
+        "  \"text\".println()   # String receives println message".println()
+        "  \"text\".print()     # String receives print message".println()
+        "".println()
+        
+        "This follows Smalltalk's philosophy:".println()
+        "  - Pure message passing".println()
+        "  - No global functions".println()
+        "  - Objects respond to messages".println()
+        "".println()
+        
+        "Just like 1 + 2 is really 1.add(2),".println()
+        "printing is message.println()!".println()
+        
+        return 0

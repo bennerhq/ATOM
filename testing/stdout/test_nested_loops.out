@@ -1,0 +1,13 @@
+=== Nested Control Flow Test ===
+
+Sorting three numbers:
+bubbleSort(5, 3, 7) = 357
+bubbleSort(9, 1, 5) = 159
+bubbleSort(2, 8, 4) = 248
+
+Counting factors:
+countFactors(12) = 4
+countFactors(20) = 4
+
+Matrix operations (sum of indices):
+multiplyMatrices() = 18

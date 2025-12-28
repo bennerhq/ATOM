@@ -1,0 +1,61 @@
+# Comprehensive string examples in Atom
+
+Person:
+    String name
+    String title
+    
+    Person init(String n, String t):
+        name = n
+        title = t
+        return this
+    
+    String getName():
+        return name
+    
+    String getTitle():
+        return title
+    
+    setName(String n):
+        name = n
+    
+    setTitle(String t):
+        title = t
+
+StringOperations:
+    Int demonstrateStrings():
+        # Simple string variables
+        String hello = "Hello"
+        String world = "World"
+        String exclamation = "!"
+        
+        # String in conditionals
+        String message = "Welcome"
+        
+        # Multiple string assignments
+        String s1 = "First"
+        String s2 = "Second"
+        String s3 = "Third"
+        
+        return 0
+    
+    Int usePersonClass():
+        # Note: Static instantiation (Person.new()) not yet implemented
+        # For now, just demonstrate string usage
+        String name = "Alice"
+        String title = "Dr."
+        
+        # Later we could use Person methods if we had an instance
+        
+        return 0
+    
+    String stringParameters(String msg, String prefix):
+        # Return one of the parameters
+        return msg
+    
+    Int main():
+        Int result = this.demonstrateStrings()
+        result = this.usePersonClass()
+        
+        String greeting = this.stringParameters("Hello", "Greeting:")
+        
+        return 0

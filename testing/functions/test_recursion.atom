@@ -1,0 +1,37 @@
+# Test recursion and fibonacci calculation
+
+Fibonacci:
+    Int fib(Int n):
+        if (n <= 1):
+            return n
+        else:
+            return this.fib(n - 1) + this.fib(n - 2)
+
+Factorial:
+    Int fact(Int n):
+        if (n <= 1):
+            return 1
+        else:
+            return n * this.fact(n - 1)
+
+Int main():
+        "=== Recursion Test ===".println()
+        "".println()
+        
+        Fibonacci fib = Fibonacci.new()
+        Factorial fact = Factorial.new()
+        
+        "Fibonacci sequence:".println()
+        "fib(0) = %i".println(fib.fib(0))
+        "fib(1) = %i".println(fib.fib(1))
+        "fib(5) = %i".println(fib.fib(5))
+        "fib(10) = %i".println(fib.fib(10))
+        "".println()
+        
+        "Factorial:".println()
+        "fact(0) = %i".println(fact.fact(0))
+        "fact(1) = %i".println(fact.fact(1))
+        "fact(5) = %i".println(fact.fact(5))
+        "fact(10) = %i".println(fact.fact(10))
+        
+        return 0

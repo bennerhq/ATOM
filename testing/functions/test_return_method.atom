@@ -1,0 +1,8 @@
+TestClass:
+    Int getValue():
+        return 42
+
+Int main():
+        TestClass t = TestClass.new()
+        "Value: %i".println(t.getValue())
+        return 0

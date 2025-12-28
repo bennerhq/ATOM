@@ -1,0 +1,32 @@
+MulBench:
+    Int wrap
+    Int iterations
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int step(Int acc, Int i):
+        acc = acc * 3
+        acc = acc + i
+        if (acc < 0):
+            acc = acc + wrap
+        if (acc > wrap):
+            acc = acc - wrap
+        return acc
+
+    Int run():
+        Int i = 0
+        Int acc = 1
+        while (i < iterations):
+            acc = this.step(acc, i)
+            i = i + 1
+        return acc
+
+Int main():
+        Int iterations = 100000000
+        Int wrap = 1000000
+        MulBench bench = MulBench.new()
+        bench.init(iterations, wrap)
+        Int checksum = bench.run()
+        return checksum

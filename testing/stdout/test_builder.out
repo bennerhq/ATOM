@@ -1,0 +1,5 @@
+=== Builder Pattern Test ===
+c1 area: 200
+c2 area: 375
+c3 area: 150
+Total area: 725

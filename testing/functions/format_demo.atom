@@ -1,0 +1,24 @@
+Int main():
+        String title = "=== " + "Format" + " Demo ===" 
+        title.println()
+        
+        # Integer formatting
+        String fmt1 = "Integer: " + "%i"
+        fmt1.println(42)
+        String fmt2 = "Negative: " + "%i"
+        fmt2.println(-999)
+        String fmt3 = "Zero: " + "%i"
+        fmt3.println(0)
+        
+        # Boolean formatting
+        "Boolean true: %b".println(1)
+        "Boolean false: %b".println(0)
+        
+        # String formatting
+        "String: %s".println("Hello")
+        "Another: %s".println("World")
+        
+        # Mixed formatting
+        "Mixed: %i, %s, %b".println(123, "test", 1)
+        
+        return 0

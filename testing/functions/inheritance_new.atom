@@ -1,0 +1,27 @@
+Animal:
+    Int age
+    
+    init(Int a):
+        age = a
+    
+    Int getAge():
+        return age
+
+Dog:
+    String name
+    Animal animal
+    
+    init(String n, Int a):
+        name = n
+        animal = Animal.new()
+        animal.init(a)
+    
+    Int age():
+        return animal.getAge()
+
+Int main():
+        Dog dog = Dog.new()
+        dog.init("Rex", 5)
+        Int dogAge = dog.age()
+        "Dog's age: %i".println(dogAge)
+        return 0

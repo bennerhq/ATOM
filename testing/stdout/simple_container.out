@@ -1,0 +1,7 @@
+Creating Point
+Point created at: 4207
+Point.x = 10
+Point.y = 20
+Container.p ptr: 4207
+Container.p.x: 10
+Container.p.y: 20

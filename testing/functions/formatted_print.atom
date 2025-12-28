@@ -1,0 +1,10 @@
+Int main():
+        String greeting = "Hello" + " " + "World"
+        greeting.println()
+        String fmt1 = "The answer is " + "%i"
+        fmt1.println(42)
+        String fmt2 = "Negative: " + "%i"
+        fmt2.println(-123)
+        String fmt3 = "Multiple: " + "%i and %i"
+        fmt3.println(10, 20)
+        return 0

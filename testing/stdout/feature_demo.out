@@ -1,0 +1,32 @@
+========================================
+      Atom Language Features
+========================================
+=== Arithmetic ===
+5 + 3 = 8
+10 - 4 = 6
+6 * 7 = 42
+20 / 4 = 5
+=== Comparisons ===
+5 < 10: true
+10 > 5: true
+5 == 5: true
+5 != 10: true
+=== Negatives ===
+-42: -42
+-100 + 50 = -50
+=== Strings ===
+Simple
+Format test
+Multi: a, b
+=== Variables ===
+x = 42
+y = 58
+x + y = 100
+=== Control Flow ===
+x > 40
+x >= 40
+=== Loops ===
+Sum of 0-4: 10
+========================================
+      All Features Working!
+========================================

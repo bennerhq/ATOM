@@ -1,0 +1,7 @@
+Int main():
+        String greeting = "Hello"
+        String space = " "
+        String name = "Atom"
+        String message = greeting + space + name
+        message.println()
+        return 0

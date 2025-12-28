@@ -1,0 +1,29 @@
+# Test print and println with format specifiers
+
+Int main():
+        # Test basic formatting
+        "Hello, World!".println()
+        
+        # Test %i format specifier (integers)
+        "Integer: %i".println(42)
+        
+        # Test %s format specifier (strings)
+        "String: %s".println("test string")
+        
+        # Test %r format specifier (reals/doubles)
+        "Real: %r".println(3.14)
+        
+        # Test %b format specifier (booleans)
+        "Boolean: %b".println(1)
+        
+        # Multiple arguments
+        "Value: %i, Name: %s".println(100, "ATOM")
+        
+        # Test print (without newline)
+        "No newline".print()
+        " - continues".println()
+        
+        # Mixed types
+        "Int %i, Real %r, String %s".println(255, 2.71, "pi")
+        
+        return 0

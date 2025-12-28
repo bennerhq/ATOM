@@ -1,0 +1,61 @@
+# Test complex state management with multiple objects
+
+Account:
+    String owner = ""
+    Int balance = 0
+    
+    Int deposit(Int amount):
+        this.balance = this.balance + amount
+        return this.balance
+    
+    Int withdraw(Int amount):
+        if (this.balance >= amount):
+            this.balance = this.balance - amount
+            return this.balance
+        else:
+            return -1
+    
+    Int getBalance():
+        return this.balance
+
+Bank:
+    Account account1 = null
+    Account account2 = null
+    Account account3 = null
+    
+    Int setupAccounts():
+        this.account1 = Account.new()
+        this.account2 = Account.new()
+        this.account3 = Account.new()
+        return 0
+    
+    Int totalBalance():
+        Int total = this.account1.getBalance()
+        total = total + this.account2.getBalance()
+        total = total + this.account3.getBalance()
+        return total
+
+Int main():
+        "=== State Management Test ===".println()
+        "".println()
+        
+        Bank bank = Bank.new()
+        bank.setupAccounts()
+        
+        "Account 1 deposit 1000: %i".println(bank.account1.deposit(1000))
+        "Account 2 deposit 500: %i".println(bank.account2.deposit(500))
+        "Account 3 deposit 750: %i".println(bank.account3.deposit(750))
+        "".println()
+        
+        "Account 1 withdraw 200: %i".println(bank.account1.withdraw(200))
+        "Account 2 withdraw 100: %i".println(bank.account2.withdraw(100))
+        "".println()
+        
+        "Total in bank: %i".println(bank.totalBalance())
+        "".println()
+        
+        "Account 1 balance: %i".println(bank.account1.getBalance())
+        "Account 2 balance: %i".println(bank.account2.getBalance())
+        "Account 3 balance: %i".println(bank.account3.getBalance())
+        
+        return 0

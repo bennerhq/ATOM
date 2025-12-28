@@ -1,0 +1,7 @@
+=== Tail Recursion Test ===
+sumTo(10,0) = 55
+sumTo(20,0) = 210
+factorial(5,1) = 120
+factorial(7,1) = 5040
+power(2,10,1) = 1024
+power(3,5,1) = 243

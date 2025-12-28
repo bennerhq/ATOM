@@ -1,0 +1,20 @@
+# Test string deduplication
+
+Int main():
+        # These should all point to the same memory location
+        String s1 = "Hello"
+        String s2 = "Hello"
+        String s3 = "Hello"
+        
+        # This should be at a different location
+        String s4 = "World"
+        
+        # Back to the same location as s1-s3
+        String s5 = "Hello"
+        
+        "s1 == s2: %b".println(s1 == s2)
+        "s1 == s3: %b".println(s1 == s3)
+        "s1 == s4: %b".println(s1 == s4)
+        "s1 == s5: %b".println(s1 == s5)
+
+        return 0

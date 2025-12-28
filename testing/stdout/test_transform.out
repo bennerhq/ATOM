@@ -1,0 +1,12 @@
+=== Multi-Pass Transform Test ===
+transform(1) = 18
+transform(2) = 19
+transform(3) = 24
+transform(4) = 23
+transform(5) = 12
+transform(6) = 27
+transform(7) = 36
+transform(8) = 31
+transform(9) = 42
+transform(10) = 15
+Total sum: 247

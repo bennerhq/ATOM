@@ -1,0 +1,114 @@
+# A comprehensive example showcasing Atom's features
+
+MathHelper:
+    Int max(Int a, Int b):
+        if (a > b):
+            return a
+        return b
+
+    Int min(Int a, Int b):
+        if (a < b):
+            return a
+        return b
+
+    Int abs(Int n):
+        if (n < 0):
+            return 0 - n
+        return n
+
+BankAccount:
+    Int balance
+    Int accountNumber
+
+    init(Int accountNumber):
+        this.accountNumber = accountNumber
+        this.balance = 0
+
+    deposit(Int amount):
+        if (amount > 0):
+            this.balance = this.balance + amount
+
+    Bool withdraw(Int amount):
+        if (amount <= 0):
+            return false
+        if (amount > this.balance):
+            return false
+        this.balance = this.balance - amount
+        return true
+
+    Int getBalance():
+        return this.balance
+
+    Bool transfer(BankAccount other, Int amount):
+        Bool success = this.withdraw(amount)
+        if (success):
+            other.deposit(amount)
+            return true
+        return false
+
+Stack:
+    Int size
+    Int capacity
+
+    init():
+        this.size = 0
+        this.capacity = 10
+
+    push(Int value):
+        if (this.size < this.capacity):
+            this.size = this.size + 1
+
+    Int pop():
+        if (this.size > 0):
+            this.size = this.size - 1
+            return 1
+        return 0
+
+    Bool isEmpty():
+        if (this.size == 0):
+            return true
+        return false
+
+    Bool isFull():
+        if (this.size == this.capacity):
+            return true
+        return false
+
+    Int getSize():
+        return this.size
+
+
+Int main():
+        "=== Comprehensive Test ===".println()
+        
+        # Test MathHelper
+        MathHelper math = MathHelper.new()
+        "Max(10, 20): %i".println(math.max(10, 20))
+        "Min(10, 20): %i".println(math.min(10, 20))
+        "Abs(-42): %i".println(math.abs(-42))
+        
+        # Test BankAccount
+        BankAccount acc1 = BankAccount.new(1001)
+        BankAccount acc2 = BankAccount.new(1002)
+        acc1.deposit(100)
+        "Account 1 balance: %i".println(acc1.getBalance())
+        
+        Bool withdrawn = acc1.withdraw(30)
+        "Withdraw success: %b".println(withdrawn)
+        "Account 1 balance after withdraw: %i".println(acc1.getBalance())
+        
+        Bool transferred = acc1.transfer(acc2, 20)
+        "Transfer success: %b".println(transferred)
+        "Account 1 balance: %i".println(acc1.getBalance())
+        "Account 2 balance: %i".println(acc2.getBalance())
+        
+        # Test Stack
+        Stack stack = Stack.new()
+        "Stack empty: %b".println(stack.isEmpty())
+        stack.push(1)
+        stack.push(2)
+        stack.push(3)
+        "Stack size: %i".println(stack.getSize())
+        "Stack empty: %b".println(stack.isEmpty())
+        
+        return 0

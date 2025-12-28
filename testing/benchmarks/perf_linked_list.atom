@@ -1,0 +1,39 @@
+# Linked list traversal benchmark
+
+Node:
+    Int val
+    Node next
+    init(Int v, Node n):
+        this.val = v
+        this.next = n
+
+LinkedListBench:
+    Int n
+    Node head
+
+    init(Int n):
+        this.n = n
+        this.head = null
+        Int i = 0
+        while (i < n):
+            this.head = Node.new(i, this.head)
+            i = i + 1
+
+    Int run():
+        Int sum = 0
+        Node curr = this.head
+        while (curr != null):
+            sum = sum + curr.val
+            curr = curr.next
+        return sum
+
+Int main(String[] args):
+        Int n = 1000
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        LinkedListBench bench = LinkedListBench.new(n)
+        Int result = bench.run()
+        "N: %i".println(n);
+        "Sum: %i".println(sum)
+        return 0

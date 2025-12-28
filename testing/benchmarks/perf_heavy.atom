@@ -1,0 +1,45 @@
+# Heavier benchmark with mixed arithmetic and branches
+
+Heavy:
+    Int iterations
+    Int wrap
+
+    init(Int iterations, Int wrap):
+        this.iterations = iterations
+        this.wrap = wrap
+
+    Int step(Int acc, Int i):
+        acc = acc + i * 3
+        if (acc > this.wrap):
+            acc = acc - this.wrap
+        acc = acc - i / 3
+        if (acc < 0):
+            acc = acc + this.wrap
+        Int rem = i - (i / 97) * 97
+        acc = acc + rem
+        if (acc > this.wrap):
+            acc = acc - this.wrap
+        return acc
+
+    Int run():
+        Int acc = 0
+        Int i = 0
+        while (i < this.iterations):
+            acc = this.step(acc, i)
+            i = i + 1
+        return acc
+
+Int main(String[] args):
+        Int iterations = 100000000
+        Int wrap = 1000000000
+        Int argc = args.count()
+        if (argc > 0):
+            iterations = args.getInt(0)
+        if (argc > 1):
+            wrap = args.getInt(1)
+        Heavy bench = Heavy.new(iterations, wrap)
+        Int checksum = bench.run()
+        "Iterations: %i".println(iterations)
+        "Wrap: %i".println(wrap)
+        "Checksum: %i".println(checksum)
+        return 0

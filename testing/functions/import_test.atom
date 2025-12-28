@@ -1,0 +1,20 @@
+# Test file using math_module with imports
+
+import MathModule from "import_math_module.atom"
+
+import Echo from "import_echo_module.atom"
+
+Int main():
+        "=== Module Import Test ===".println()
+        
+        Echo e = Echo.new()
+        e.make("Hello from Echo module!!!!!")
+        
+        MathModule math = MathModule.new()
+        
+        "3 + 5 = %i".println(math.add(3, 5))
+        "10 - 4 = %i".println(math.subtract(10, 4))
+        "6 * 7 = %i".println(math.multiply(6, 7))
+        "4 squared = %i".println(math.square(4))
+
+        return 0

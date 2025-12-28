@@ -1,0 +1,31 @@
+# Tail recursion simulation with accumulator pattern
+
+Accumulator:
+    Int sumTo(Int n, Int acc):
+        if (n == 0):
+            return acc
+        return this.sumTo(n - 1, acc + n)
+    
+    Int factorial(Int n, Int acc):
+        if (n == 0):
+            return acc
+        return this.factorial(n - 1, acc * n)
+    
+    Int power(Int base, Int exp, Int acc):
+        if (exp == 0):
+            return acc
+        return this.power(base, exp - 1, acc * base)
+
+Int main():
+        "=== Tail Recursion Test ===".println()
+        
+        Accumulator acc = Accumulator.new()
+        
+        "sumTo(10,0) = %i".println(acc.sumTo(10, 0))
+        "sumTo(20,0) = %i".println(acc.sumTo(20, 0))
+        "factorial(5,1) = %i".println(acc.factorial(5, 1))
+        "factorial(7,1) = %i".println(acc.factorial(7, 1))
+        "power(2,10,1) = %i".println(acc.power(2, 10, 1))
+        "power(3,5,1) = %i".println(acc.power(3, 5, 1))
+        
+        return 0

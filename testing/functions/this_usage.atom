@@ -1,0 +1,24 @@
+# Validate field access works with and without explicit "this."
+
+Demo:
+    Int a
+    Int b
+
+    init(Int seed):
+        a = seed            # implicit this
+        this.b = seed + 1   # explicit this
+
+    bump(Int delta):
+        a = a + delta       # implicit
+        this.b = this.b + delta  # explicit
+
+    Int sum():
+        return a + this.b
+
+Int main():
+        Demo d = Demo.new(5)
+        d.bump(2)
+        "a: %i".println(d.a)
+        "b: %i".println(d.b)
+        "sum: %i".println(d.sum())
+        return 0

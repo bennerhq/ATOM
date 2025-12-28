@@ -1,0 +1,51 @@
+# Complex initialization and object chaining patterns
+
+Config:
+    Int width
+    Int height
+    String name
+    
+    Config setWidth(Int w):
+        this.width = w
+        return this
+    
+    Config setHeight(Int h):
+        this.height = h
+        return this
+    
+    Config setName(String n):
+        this.name = n
+        return this
+    
+    Int area():
+        return this.width * this.height
+
+Builder:
+    Config build(Int w, Int h, String n):
+        Config cfg = Config.new()
+        cfg.setWidth(w)
+        cfg.setHeight(h)
+        cfg.setName(n)
+        return cfg
+    
+    Int testMultiple():
+        Config c1 = this.build(10, 20, "First")
+        Config c2 = this.build(15, 25, "Second")
+        Config c3 = this.build(5, 30, "Third")
+        
+        Int total = c1.area() + c2.area() + c3.area()
+        
+        "c1 area: %i".println(c1.area())
+        "c2 area: %i".println(c2.area())
+        "c3 area: %i".println(c3.area())
+        
+        return total
+
+Int main():
+        "=== Builder Pattern Test ===".println()
+        
+        Builder b = Builder.new()
+        Int result = b.testMultiple()
+        "Total area: %i".println(result)
+        
+        return 0

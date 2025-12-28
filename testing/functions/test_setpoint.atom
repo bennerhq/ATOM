@@ -1,0 +1,21 @@
+Point:
+    Int x
+    Int y
+
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+Container:
+    Point p
+
+    setPoint(Int x, Int y):
+        "Before assignment".println()
+        this.p = Point.new(x, y)
+        "After assignment, this.p = %i, %i".println(this.p.x, this.p.y)
+
+Int main():
+        Container c = Container.new()
+        c.setPoint(10, 20)
+        "From Main, c.p = %i, %i".println(c.p.x, c.p.y)
+        return 0

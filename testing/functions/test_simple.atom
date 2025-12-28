@@ -1,0 +1,3 @@
+# Simple test program
+Int main():
+        "%i".println(42)

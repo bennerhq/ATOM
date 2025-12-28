@@ -1,0 +1,33 @@
+# Multi-level inheritance chain
+
+A:
+    Int methodA():
+        return 1
+
+B: A:
+    Int methodB():
+        return 2
+
+C: B:
+    Int methodC():
+        return 3
+
+D: C:
+    Int methodD():
+        return 4
+
+E: D:
+    Int methodE():
+        return 5
+
+Int main():
+        "=== Deep Inheritance Chain Test ===".println()
+        
+        E obj = E.new()
+        "methodA: %i".println(obj.methodA())
+        "methodB: %i".println(obj.methodB())
+        "methodC: %i".println(obj.methodC())
+        "methodD: %i".println(obj.methodD())
+        "methodE: %i".println(obj.methodE())
+        
+        return 0

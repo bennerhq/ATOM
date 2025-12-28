@@ -1,0 +1,155 @@
+# Simple demonstration of the "inner" keyword
+# Inspired by the Beta programming language
+
+# Logger with template method pattern using inner
+Logger:
+    Int level
+    
+    init(Int level):
+        this.level = level
+    
+    Int log():
+        # Logging prefix
+        Int timestamp = 1000
+        Int prefix = this.level
+        
+        # Extension point - subclasses add their message here
+        inner
+        
+        # Logging suffix
+        Int newline = 10
+        
+        return 0
+
+# ErrorLogger extends logging with error-specific behavior
+ErrorLogger:
+    Int errorCode
+    
+    init(Int code):
+        this.errorCode = code
+    
+    Int log():
+        # This executes at the "inner" point in Logger.log()
+        Int message = this.errorCode
+        Int severity = 3
+        
+        # Can have its own inner for further extension
+        inner
+        
+        return this.errorCode
+
+# Request handler with lifecycle hooks via inner
+RequestHandler:
+    Int requestId
+    
+    init(Int id):
+        this.requestId = id
+    
+    Int handleRequest():
+        # Pre-processing
+        Int authenticated = this.authenticate()
+        
+        if (authenticated == 0):
+            return 0
+        
+        # Main request processing - extension point
+        inner
+        
+        # Post-processing
+        Int logged = this.logRequest()
+        
+        return 1
+    
+    Int authenticate():
+        return 1
+    
+    Int logRequest():
+        return 1
+
+# Specific handler for API requests
+ApiRequestHandler:
+    Int apiVersion
+    
+    init(Int version):
+        this.apiVersion = version
+    
+    Int handleRequest():
+        # API-specific processing at the inner point
+        Int validated = this.validateApiVersion()
+        
+        if (validated == 1):
+            Int result = this.processApiCall()
+            inner
+            return result
+        
+        return 0
+    
+    Int validateApiVersion():
+        if (this.apiVersion > 0):
+            return 1
+        return 0
+    
+    Int processApiCall():
+        return 42
+
+# Simple lifecycle example
+Component:
+    Int id
+    
+    init(Int id):
+        this.id = id
+    
+    Int lifecycle():
+        this.onCreate()
+        inner
+        this.onDestroy()
+        return 0
+    
+    Int onCreate():
+        return 1
+    
+    Int onDestroy():
+        return 0
+
+Button:
+    Int label
+    
+    init(Int label):
+        this.label = label
+    
+    Int lifecycle():
+        this.attachClickHandler()
+        inner
+        this.detachClickHandler()
+        return this.label
+    
+    Int attachClickHandler():
+        return 1
+    
+    Int detachClickHandler():
+        return 0
+
+Int main():
+        "=== Inner Keyword Test ===".println()
+        
+        # Test Logger
+        Logger logger = Logger.new(1)
+        Int result = logger.log()
+        "Logger result: %i".println(result)
+        
+        # Test ErrorLogger
+        ErrorLogger errorLog = ErrorLogger.new(404)
+        Int errorResult = errorLog.log()
+        "Error logger result: %i".println(errorResult)
+        
+        # Test RequestHandler
+        RequestHandler handler = RequestHandler.new(123)
+        Int handled = handler.handleRequest()
+        "Request handled: %b".println(handled)
+        
+        # Test ApiRequestHandler
+        ApiRequestHandler apiHandler = ApiRequestHandler.new(2)
+        Int apiResult = apiHandler.handleRequest()
+        "API result: %i".println(apiResult)
+        
+        return 0

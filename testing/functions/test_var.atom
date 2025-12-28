@@ -1,0 +1,6 @@
+Int main():
+        Int x = 5
+        Int y = 10
+        "x = %i, y = %i".println(x, y)
+
+        return 0

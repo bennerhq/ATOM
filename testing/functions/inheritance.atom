@@ -1,0 +1,358 @@
+# Comprehensive Inheritance and Method Overriding Example
+# Demonstrates inheritance, methods, and the inner keyword
+
+# ===== Basic Inheritance =====
+
+Animal:
+    Int name
+    Int age
+    
+    init(Int name, Int age):
+        this.name = name
+        this.age = age
+    
+    # method - can be overridden in subclasses
+    Int makeSound():
+        return 0
+    
+    Int getAge():
+        return this.age
+    
+    # Template method with inner extension point
+    Int describe():
+        Int intro = this.name
+        inner
+        Int outro = this.age
+        return 0
+
+# Dog inherits from Animal
+Dog: Animal:
+    Int breed
+    
+    init(Int name, Int age, Int breed):
+        this.name = name
+        this.age = age
+        this.breed = breed
+    
+    # Override makeSound - method
+    Int makeSound():
+        return 1
+    
+    Int getBreed():
+        return this.breed
+    
+    # Extend describe at inner point
+    Int describe():
+        Int sound = this.makeSound()
+        inner
+        return sound
+
+# Cat inherits from Animal
+Cat: Animal:
+    Int color
+    
+    init(Int name, Int age, Int color):
+        this.name = name
+        this.age = age
+        this.color = color
+    
+    # Override makeSound differently
+    Int makeSound():
+        return 2
+    
+    Int getColor():
+        return this.color
+    
+    # Different extension at inner point
+    Int describe():
+        Int meow = this.makeSound()
+        Int colorInfo = this.color
+        inner
+        return meow
+
+# ===== Multi-Level Inheritance =====
+
+Vehicle:
+    Int speed
+    Int fuel
+    
+    init(Int speed, Int fuel):
+        this.speed = speed
+        this.fuel = fuel
+    
+    Int move():
+        if (this.fuel > 0):
+            this.fuel = this.fuel - 1
+            inner
+            return this.speed
+        return 0
+    
+    refuel(Int amount):
+        this.fuel = this.fuel + amount
+
+Car: Vehicle:
+    Int doors
+    
+    init(Int speed, Int fuel, Int doors):
+        this.speed = speed
+        this.fuel = fuel
+        this.doors = doors
+    
+    # Override and extend move
+    Int move():
+        Int engineStart = 1
+        inner
+        Int result = this.speed
+        return result
+    
+    Int openDoors():
+        return this.doors
+
+SportsCar: Car:
+    Int turbo
+    
+    init(Int speed, Int fuel, Int doors, Int turbo):
+        this.speed = speed
+        this.fuel = fuel
+        this.doors = doors
+        this.turbo = turbo
+    
+    # Further override move with turbo
+    Int move():
+        if (this.turbo == 1):
+            Int boostedSpeed = this.speed * 2
+            inner
+            return boostedSpeed
+        inner
+        return this.speed
+    
+    activateTurbo():
+        this.turbo = 1
+
+# ===== Polymorphism Example =====
+
+Shape:
+    Int x
+    Int y
+    
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+    
+    # method - should be overridden
+    Int area():
+        return 0
+    
+    # method - should be overridden
+    Int perimeter():
+        return 0
+    
+    # Template method using inner
+    Int draw():
+        Int setup = 1
+        inner
+        Int cleanup = 1
+        return 0
+
+Rectangle: Shape:
+    Int width
+    Int height
+    
+    init(Int x, Int y, Int width, Int height):
+        this.x = x
+        this.y = y
+        this.width = width
+        this.height = height
+    
+    # Override area calculation
+    Int area():
+        return this.width * this.height
+    
+    # Override perimeter calculation
+    Int perimeter():
+        return 2 * (this.width + this.height)
+    
+    # Extend draw with rectangle-specific rendering
+    Int draw():
+        Int rectSetup = this.width
+        inner
+        Int rectCleanup = this.height
+        return 0
+
+Circle: Shape:
+    Int radius
+    
+    init(Int x, Int y, Int radius):
+        this.x = x
+        this.y = y
+        this.radius = radius
+    
+    # Override area (approximation)
+    Int area():
+        return 3 * this.radius * this.radius
+    
+    # Override perimeter (approximation)
+    Int perimeter():
+        return 6 * this.radius
+    
+    # Extend draw with circle-specific rendering
+    Int draw():
+        Int circleSetup = this.radius
+        inner
+        return this.radius
+
+# ===== Abstract Base Pattern =====
+
+DataProcessor:
+    Int dataSize
+    Int processed
+    
+    init(Int size):
+        this.dataSize = size
+        this.processed = 0
+    
+    # Template method - defines algorithm structure
+    Int process():
+        Int validated = this.validate()
+        
+        if (validated == 0):
+            return 0
+        
+        # Extension point for actual processing
+        inner
+        
+        this.processed = 1
+        Int finalized = this.finalize()
+        
+        return finalized
+    
+    Int validate():
+        if (this.dataSize > 0):
+            return 1
+        return 0
+    
+    Int finalize():
+        return 1
+
+ImageProcessor: DataProcessor:
+    Int format
+    Int quality
+    
+    init(Int size, Int format, Int quality):
+        this.dataSize = size
+        this.format = format
+        this.quality = quality
+        this.processed = 0
+    
+    # Implement specific processing
+    Int process():
+        Int decodedFormat = this.format
+        Int compressed = this.compress()
+        inner
+        return compressed
+    
+    Int compress():
+        return this.quality * this.dataSize
+
+AudioProcessor: DataProcessor:
+    Int sampleRate
+    Int channels
+    
+    init(Int size, Int rate, Int channels):
+        this.dataSize = size
+        this.sampleRate = rate
+        this.channels = channels
+        this.processed = 0
+    
+    # Implement specific processing
+    Int process():
+        Int normalized = this.normalize()
+        inner
+        Int encoded = this.encode()
+        return encoded
+    
+    Int normalize():
+        return this.sampleRate
+    
+    Int encode():
+        return this.channels
+
+# ===== Method Overriding with Different Signatures =====
+
+Account:
+    Int balance
+    Int accountId
+    
+    init(Int id):
+        this.accountId = id
+        this.balance = 0
+    
+    deposit(Int amount):
+        if (amount > 0):
+            this.balance = this.balance + amount
+            inner
+    
+    Int withdraw(Int amount):
+        if (amount > 0):
+            if (amount <= this.balance):
+                this.balance = this.balance - amount
+                inner
+                return 1
+        return 0
+    
+    Int getBalance():
+        return this.balance
+
+SavingsAccount: Account:
+    Int interestRate
+    Int minimumBalance
+    
+    init(Int id, Int minBalance):
+        this.accountId = id
+        this.balance = 0
+        this.minimumBalance = minBalance
+        this.interestRate = 5
+    
+    # Override deposit to add interest calculation
+    deposit(Int amount):
+        Int interest = amount * this.interestRate
+        Int totalDeposit = amount + interest
+        inner
+    
+    # Override withdraw with minimum balance check
+    Int withdraw(Int amount):
+        Int afterWithdraw = this.balance - amount
+        
+        if (afterWithdraw < this.minimumBalance):
+            return 0
+        
+        inner
+        return 1
+    
+    Int calculateInterest():
+        return this.balance * this.interestRate
+
+CheckingAccount: Account:
+    Int overdraftLimit
+    Int transactionCount
+    
+    init(Int id, Int overdraft):
+        this.accountId = id
+        this.balance = 0
+        this.overdraftLimit = overdraft
+        this.transactionCount = 0
+    
+    # Override withdraw to allow overdraft
+    Int withdraw(Int amount):
+        Int available = this.balance + this.overdraftLimit
+        
+        if (amount <= available):
+            this.balance = this.balance - amount
+            this.transactionCount = this.transactionCount + 1
+            inner
+            return 1
+        
+        return 0
+    
+    Int getTransactionCount():
+        return this.transactionCount

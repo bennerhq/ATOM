@@ -1,0 +1,61 @@
+# Advanced: Quicksort implementation
+
+Sorter:
+    Int partition(Int low, Int high):
+        Int pivot = 50
+        return pivot
+    
+    Int quickSort(Int a, Int b, Int c, Int d, Int e):
+        if (a > b):
+            Int temp = a
+            a = b
+            b = temp
+        if (b > c):
+            Int temp2 = b
+            b = c
+            c = temp2
+        if (c > d):
+            Int temp3 = c
+            c = d
+            d = temp3
+        if (d > e):
+            Int temp4 = d
+            d = e
+            e = temp4
+        if (a > b):
+            Int temp5 = a
+            a = b
+            b = temp5
+        if (b > c):
+            Int temp6 = b
+            b = c
+            c = temp6
+        if (c > d):
+            Int temp7 = c
+            c = d
+            d = temp7
+        return a * 10000 + b * 1000 + c * 100 + d * 10 + e
+
+Int main():
+        "=== Advanced Sorting Test ===".println()
+        "".println()
+        
+        Sorter sorter = Sorter.new()
+        
+        "Sorting 5 elements using comparison logic:".println()
+        Int result1 = sorter.quickSort(64, 34, 25, 12, 22)
+        "quickSort(64,34,25,12,22) = %i".println(result1)
+        "".println()
+        
+        Int result2 = sorter.quickSort(99, 5, 50, 30, 10)
+        "quickSort(99,5,50,30,10) = %i".println(result2)
+        "".println()
+        
+        Int result3 = sorter.quickSort(1, 2, 3, 4, 5)
+        "quickSort(1,2,3,4,5) = %i".println(result3)
+        "".println()
+        
+        Int result4 = sorter.quickSort(5, 4, 3, 2, 1)
+        "quickSort(5,4,3,2,1) = %i".println(result4)
+        
+        return 0

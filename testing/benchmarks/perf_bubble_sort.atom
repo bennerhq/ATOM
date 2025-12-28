@@ -1,0 +1,38 @@
+# Bubble sort benchmark
+
+BubbleSortBench:
+    Int n
+    Int[] arr
+
+    init(Int n):
+        this.n = n
+
+        arr = Int[n]
+        Int i = 0
+        while (i < n):
+            arr[i] = n - i
+            i = i + 1
+
+    Int run():
+        Int i = 0
+        while (i < n):
+            Int j = 0
+            while (j < n - 1):
+                if (arr[j] > arr[j+1]):
+                    Int tmp = arr[j]
+                    arr[j] = arr[j+1]
+                    arr[j+1] = tmp
+                j = j + 1
+            i = i + 1
+        return arr[0]
+
+Int main(String[] args):
+        Int n = 20000
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        BubbleSortBench bench = BubbleSortBench.new(n)
+        Int result = bench.run()
+        "N: %i".println(n)
+        "First: %i".println(result)
+        return 0

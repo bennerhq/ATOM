@@ -1,0 +1,13 @@
+=== Comprehensive Test ===
+Max(10, 20): 20
+Min(10, 20): 10
+Abs(-42): 42
+Account 1 balance: 100
+Withdraw success: true
+Account 1 balance after withdraw: 70
+Transfer success: true
+Account 1 balance: 50
+Account 2 balance: 20
+Stack empty: true
+Stack size: 3
+Stack empty: false

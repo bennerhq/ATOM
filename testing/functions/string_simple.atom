@@ -1,0 +1,19 @@
+# Simple string examples in Atom
+
+Main:
+    String greet():
+        String greeting = "Hello"
+        String comma = ", "
+        String name = "Atom!"
+        String message = greeting + comma + name
+        return message
+    
+    String getName():
+        return "Beautiful" + " " + "World"
+    
+    Int start():
+        String greeting = "Hello"
+        String name = "Atom"
+        String combined = greeting + " " + name
+        combined.println()
+        return 0

@@ -1,0 +1,5 @@
+=== Inner Keyword Test ===
+Logger result: 0
+Error logger result: 404
+Request handled: true
+API result: 42

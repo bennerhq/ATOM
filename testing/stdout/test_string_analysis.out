@@ -1,0 +1,15 @@
+=== Advanced String & Code Analysis Test ===
+
+String analysis:
+Length of 'hello world': 11
+
+String concatenation:
+ababab
+
+Code generation with indentation:
+code line 0
+code line 1
+  code line 0
+  code line 1
+    code line 0
+    code line 1

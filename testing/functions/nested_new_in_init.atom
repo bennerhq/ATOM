@@ -1,0 +1,27 @@
+# Regression: nested constructor inside init should work
+
+Point:
+    Int x
+    Int y
+
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+Container:
+    Point p
+
+    init(Int x, Int y):
+        this.p = Point.new(x, y)
+
+    Int px():
+        return this.p.x
+
+    Int py():
+        return this.p.y
+
+Int main():
+        Container c = Container.new(7, 9)
+        "px=%i".println(c.px())
+        "py=%i".println(c.py())
+        return 0

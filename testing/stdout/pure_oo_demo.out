@@ -1,0 +1,16 @@
+=== Atom: Pure Object-Oriented ===
+
+In Atom, everything is an object.
+Even strings respond to messages!
+
+Examples:
+  "text".println()   # String receives println message
+  "text".print()     # String receives print message
+
+This follows Smalltalk's philosophy:
+  - Pure message passing
+  - No global functions
+  - Objects respond to messages
+
+Just like 1 + 2 is really 1.add(2),
+printing is message.println()!

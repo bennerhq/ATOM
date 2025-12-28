@@ -1,0 +1,24 @@
+Point:
+    Int x
+    Int y
+
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+    Int getX():
+        return this.x
+
+    Int getY():
+        return this.y
+
+Int main():
+        "=== Simple Point Test ===".println()
+        
+        Point p = Point.new(3, 4)
+        "Point: (%i, %i)".println(p.x, p.y)
+        
+        Int sum = 3 + 4
+        "Sum: %i".println(sum)
+        
+        return 0

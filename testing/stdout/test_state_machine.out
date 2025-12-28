@@ -1,0 +1,11 @@
+=== State Machine Test ===
+
+Traffic Light State Machine:
+Initial state: RED
+Next state: GREEN
+Next state: YELLOW
+Next state: RED
+Next state: GREEN
+
+Recursive depth tracking:
+Final depth: 0

@@ -1,0 +1,19 @@
+Counter:
+    Int count
+    
+    init(Int start):
+        count = start
+    
+    increment():
+        count = count + 1
+    
+    Int getCount():
+        return count
+
+Int main():
+        Counter c = Counter.new()
+        c.init(10)
+        c.increment()
+        c.increment()
+        Int final = c.getCount()
+        "return %i".println(final)

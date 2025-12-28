@@ -1,0 +1,22 @@
+Number:
+    Int value
+    
+    init(Int v):
+        value = v
+    
+    Bool isEven():
+        Bool even = false
+        if (value == 0):
+            even = true
+        return even
+    
+    Bool isPositive():
+        return value > 0
+
+Int main():
+        Number n = Number.new()
+        n.init(42)
+        Bool pos = n.isPositive()
+        Bool even = n.isEven()
+        "pos = %b, even = %b".println(pos, even)
+        return 0

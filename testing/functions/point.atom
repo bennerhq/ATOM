@@ -1,0 +1,79 @@
+# Point example
+# Demonstrates basic OO features in Atom
+
+Point:
+    Int x
+    Int y
+
+    # Constructor
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+    # Method demonstrating operator overloading
+    # In Atom, '+' is just a method name
+    Point add(Point other):
+        Int newX = this.x + other.x
+        Int newY = this.y + other.y
+        return Point.new(newX, newY)
+
+    # Distance calculation
+    Int distanceSquared(Point other):
+        Int dx = this.x - other.x
+        Int dy = this.y - other.y
+        return dx * dx + dy * dy
+
+    # Convert to string representation
+    String toString():
+        return "Point"
+
+    # Check if two points are equal
+    Bool equals(Point other):
+        if (this.x == other.x):
+            if (this.y == other.y):
+                return true
+        return false
+
+# Rectangle demonstrating inheritance-like composition
+Rectangle:
+    Point topLeft
+    Point bottomRight
+
+    init(Int x1, Int y1, Int x2, Int y2):
+        this.topLeft = Point.new(x1, y1)
+        this.bottomRight = Point.new(x2, y2)
+
+    Int width():
+        return this.bottomRight.x - this.topLeft.x
+
+    Int height():
+        return this.topLeft.y - this.bottomRight.y
+
+    Int area():
+        Int w = this.width()
+        Int h = this.height()
+        return w * h
+
+Int main():
+        "=== Point and Rectangle Test ===".println()
+        
+        Point p1 = Point.new(3, 4)
+        Point p2 = Point.new(5, 6)
+        "Point 1: (%i, %i)".println(p1.x, p1.y)
+        "Point 2: (%i, %i)".println(p2.x, p2.y)
+        
+        Point p3 = p1.add(p2)
+        "Added point: (%i, %i)".println(p3.x, p3.y)
+        
+        Int dist = p1.distanceSquared(p2)
+        "Distance squared: %i".println(dist)
+        
+        Bool equal = p1.equals(p2)
+        "p1 equals p2: %b".println(equal)
+        
+        Rectangle rect = Rectangle.new(0, 10, 5, 0)
+        "Rectangle width: %i".println(rect.width())
+        "Rectangle height: %i".println(rect.height())
+        "Rectangle area: %i".println(rect.area())
+        
+        return 0

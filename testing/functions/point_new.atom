@@ -1,0 +1,62 @@
+Point:
+    Int x
+    Int y
+
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+
+    Int distanceSquared(Point other):
+        Int dx = this.x - other.x
+        Int dy = this.y - other.y
+        return dx * dx + dy * dy
+
+    Bool equals(Point other):
+        if (this.x == other.x):
+            if (this.y == other.y):
+                return true
+        return false
+
+Rectangle:
+    Point topLeft
+    Point bottomRight
+
+    init(Int x1, Int y1, Int x2, Int y2):
+        this.topLeft = Point.new()
+        this.topLeft.init(x1, y1)
+        this.bottomRight = Point.new()
+        this.bottomRight.init(x2, y2)
+
+    Int width():
+        return this.bottomRight.x - this.topLeft.x
+
+    Int height():
+        return this.topLeft.y - this.bottomRight.y
+
+    Int area():
+        Int w = this.width()
+        Int h = this.height()
+        return w * h
+
+Int main():
+        Point p1 = Point.new()
+        p1.init(3, 4)
+        Point p2 = Point.new()
+        p2.init(5, 6)
+        
+        Int dist = p1.distanceSquared(p2)
+        Bool equal = p1.equals(p2)
+        
+        Rectangle rect = Rectangle.new()
+        rect.init(0, 10, 5, 0)
+        Int w = rect.width()
+        Int h = rect.height()
+        Int a = rect.area()
+        
+        "Distance squared: %i".println(dist)
+        "Points equal: %b".println(equal)
+        "Rectangle width: %i".println(w)
+        "Rectangle height: %i".println(h)
+        "Rectangle area: %i".println(a)
+
+        return a

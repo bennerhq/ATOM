@@ -1,0 +1,4 @@
+s1 == s2: true
+s1 == s3: true
+s1 == s4: false
+s1 == s5: true

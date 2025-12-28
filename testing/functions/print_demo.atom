@@ -1,0 +1,29 @@
+# String output demonstrations - Pure OO style with concatenation!
+
+Int main():
+        # Direct string literals with println
+        "Welcome to Atom!".println()
+        "This is pure object-oriented programming.".println()
+        "".println()
+        
+        # String variables
+        String msg1 = "Message passing in action!"
+        msg1.println()
+        
+        String msg2 = "Strings are objects."
+        msg2.println()
+        
+        # Using print (without newline)
+        String greeting2 = "Hello, " + "World!"
+        greeting2.println()
+        
+        # Multiple prints on one line
+        String greeting = "A" + "B" + "C"
+        greeting.println()
+
+        # String concatenation with variables
+        String name = "Atom"
+        String message = "Welcome to " + name + "!"
+        message.println()
+        
+        return 0

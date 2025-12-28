@@ -1,0 +1,4 @@
+=== Middle Import Test ===
+calc.add(2, 3) = 5
+Woof! Woof!
+21

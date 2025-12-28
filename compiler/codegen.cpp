@@ -1,0 +1,2212 @@
+#include "codegen.h"
+
+#include "ast.h"
+
+#include <algorithm>
+#include <cctype>
+#include <map>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <unordered_set>
+
+namespace atom {
+
+namespace {
+
+struct Emitter {
+    std::ostringstream out;
+    int indent = 0;
+
+    void line(const std::string &text) {
+        for (int i = 0; i < indent; ++i) out << "  ";
+        out << text << "\n";
+    }
+
+    void open(const std::string &text) {
+        line(text);
+        indent++;
+    }
+
+    void close(const std::string &text) {
+        indent--;
+        line(text);
+    }
+};
+
+struct StringData {
+    std::string value;
+    int offset = 0;
+};
+
+bool type_equals(const TypePtr &a, const TypePtr &b, bool strict_virtual) {
+    if (!a || !b) return false;
+    if (a->kind != b->kind) return false;
+    if (strict_virtual && a->is_virtual != b->is_virtual) return false;
+    if (a->kind == Type::Kind::Array) {
+        if (!a->elem || !b->elem) return false;
+        return type_equals(a->elem, b->elem, strict_virtual);
+    }
+    if (a->kind == Type::Kind::Class) return a->name == b->name;
+    return true;
+}
+
+TypePtr unify_numeric(const TypePtr &a, const TypePtr &b) {
+    if (a->kind == Type::Kind::Real || b->kind == Type::Kind::Real) {
+        return Type::make(Type::Kind::Real);
+    }
+    return Type::make(Type::Kind::Int);
+}
+
+struct Scope {
+    std::unordered_map<std::string, TypePtr> vars;
+};
+
+struct TypeChecker {
+    Program &program;
+    SemanticContext &ctx;
+    std::string current_class;
+    std::string current_function;
+    std::vector<Scope> scopes;
+
+    TypeChecker(Program &p, SemanticContext &c) : program(p), ctx(c) {}
+
+    void push_scope() { scopes.push_back({}); }
+    void pop_scope() { scopes.pop_back(); }
+
+    void define(const std::string &name, const TypePtr &type) {
+        if (scopes.empty()) push_scope();
+        scopes.back().vars[name] = type;
+    }
+
+    TypePtr lookup(const std::string &name) {
+        for (auto it = scopes.rbegin(); it != scopes.rend(); ++it) {
+            auto found = it->vars.find(name);
+            if (found != it->vars.end()) return found->second;
+        }
+        if (!current_class.empty()) {
+            auto &cls = ctx.classes[current_class];
+            for (auto &field : cls.def->fields) {
+                if (field.name == name) return field.type;
+            }
+        }
+        return Type::make_unknown();
+    }
+
+    TypePtr check_expr(Expr *expr) {
+        if (auto lit = dynamic_cast<IntLiteral *>(expr)) {
+            lit->type = Type::make(Type::Kind::Int);
+            return lit->type;
+        }
+        if (auto lit = dynamic_cast<RealLiteral *>(expr)) {
+            lit->type = Type::make(Type::Kind::Real);
+            return lit->type;
+        }
+        if (auto lit = dynamic_cast<StringLiteral *>(expr)) {
+            lit->type = Type::make(Type::Kind::String);
+            return lit->type;
+        }
+        if (auto lit = dynamic_cast<CharLiteral *>(expr)) {
+            lit->type = Type::make(Type::Kind::Char);
+            return lit->type;
+        }
+        if (auto lit = dynamic_cast<BoolLiteral *>(expr)) {
+            lit->type = Type::make(Type::Kind::Bool);
+            return lit->type;
+        }
+        if (dynamic_cast<NullLiteral *>(expr)) {
+            expr->type = Type::make(Type::Kind::Null);
+            return expr->type;
+        }
+        if (auto ident = dynamic_cast<Identifier *>(expr)) {
+            if (ident->name == "inner") {
+                ident->type = Type::make(Type::Kind::Void);
+                return ident->type;
+            }
+            TypePtr type = lookup(ident->name);
+            if (type->kind == Type::Kind::Unknown) {
+                if (ctx.functions.count(ident->name)) type = ctx.functions[ident->name].def->return_type;
+                if (ctx.classes.count(ident->name)) type = Type::make_class(ident->name);
+            }
+            ident->type = type;
+            return type;
+        }
+        if (dynamic_cast<ThisExpr *>(expr)) {
+            expr->type = Type::make_class(current_class);
+            return expr->type;
+        }
+        if (auto unary = dynamic_cast<UnaryExpr *>(expr)) {
+            auto t = check_expr(unary->expr.get());
+            if (unary->op == "-") {
+                unary->type = (t->kind == Type::Kind::Real) ? Type::make(Type::Kind::Real) : Type::make(Type::Kind::Int);
+            } else {
+                unary->type = Type::make(Type::Kind::Bool);
+            }
+            return unary->type;
+        }
+        if (auto bin = dynamic_cast<BinaryExpr *>(expr)) {
+            auto lt = check_expr(bin->left.get());
+            auto rt = check_expr(bin->right.get());
+            if (bin->op == "+" && (lt->kind == Type::Kind::String || rt->kind == Type::Kind::String)) {
+                bin->type = Type::make(Type::Kind::String);
+            } else if (bin->op == "==" || bin->op == "!=" || bin->op == "<" || bin->op == "<=" || bin->op == ">" || bin->op == ">=") {
+                bin->type = Type::make(Type::Kind::Bool);
+            } else if (bin->op == "&&" || bin->op == "||") {
+                bin->type = Type::make(Type::Kind::Bool);
+            } else if (bin->op == "%") {
+                bin->type = Type::make(Type::Kind::Int);
+            } else {
+                bin->type = unify_numeric(lt, rt);
+            }
+            return bin->type;
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(expr)) {
+            auto objt = check_expr(mem->object.get());
+            if (objt->kind == Type::Kind::Class) {
+                auto &cls = ctx.classes[objt->name];
+                for (auto &field : cls.def->fields) {
+                    if (field.name == mem->member) {
+                        mem->type = field.type;
+                        return mem->type;
+                    }
+                }
+                mem->type = Type::make_unknown();
+            } else {
+                mem->type = Type::make_unknown();
+            }
+            return mem->type;
+        }
+        if (auto idx = dynamic_cast<IndexExpr *>(expr)) {
+            auto at = check_expr(idx->array.get());
+            check_expr(idx->index.get());
+            if (at->kind == Type::Kind::Array) idx->type = at->elem ? at->elem : Type::make_unknown();
+            else idx->type = Type::make_unknown();
+            return idx->type;
+        }
+        if (auto arr = dynamic_cast<ArrayLiteral *>(expr)) {
+            TypePtr elem = nullptr;
+            for (auto &el : arr->elements) {
+                TypePtr t = check_expr(el.get());
+                if (!elem) elem = t;
+                else if (elem->kind != t->kind) elem = Type::make_unknown();
+            }
+            if (!elem) elem = Type::make_unknown();
+            arr->type = Type::make_array(elem);
+            return arr->type;
+        }
+        if (auto call = dynamic_cast<CallExpr *>(expr)) {
+            if (auto callee_ident = dynamic_cast<Identifier *>(call->callee.get())) {
+                if (ctx.functions.count(callee_ident->name)) {
+                    auto fn = ctx.functions[callee_ident->name].def;
+                    for (auto &arg : call->args) check_expr(arg.get());
+                    call->type = fn->return_type;
+                    return call->type;
+                }
+                if (ctx.classes.count(callee_ident->name)) {
+                    for (auto &arg : call->args) check_expr(arg.get());
+                    call->type = Type::make_class(callee_ident->name);
+                    return call->type;
+                }
+            }
+            if (auto callee_mem = dynamic_cast<MemberExpr *>(call->callee.get())) {
+                auto objt = check_expr(callee_mem->object.get());
+                for (auto &arg : call->args) check_expr(arg.get());
+                if (callee_mem->member == "new" && objt->kind == Type::Kind::Class) {
+                    call->type = Type::make_class(objt->name);
+                    return call->type;
+                }
+                if (callee_mem->member == "print" || callee_mem->member == "println") {
+                    call->type = Type::make(Type::Kind::Void);
+                    return call->type;
+                }
+                if (objt->kind == Type::Kind::Array) {
+                    if (callee_mem->member == "size" || callee_mem->member == "count") call->type = Type::make(Type::Kind::Int);
+                    else if (callee_mem->member == "push" || callee_mem->member == "set") call->type = Type::make(Type::Kind::Void);
+                    else if (callee_mem->member == "pop" || callee_mem->member == "get") call->type = objt->elem ? objt->elem : Type::make_unknown();
+                    else if (callee_mem->member == "getString") call->type = Type::make(Type::Kind::String);
+                    else if (callee_mem->member == "getInt") call->type = Type::make(Type::Kind::Int);
+                    else call->type = Type::make_unknown();
+                    return call->type;
+                }
+                if (objt->kind == Type::Kind::String) {
+                    if (callee_mem->member == "length") call->type = Type::make(Type::Kind::Int);
+                    else call->type = Type::make(Type::Kind::Void);
+                    return call->type;
+                }
+                if (objt->kind == Type::Kind::Class) {
+                    auto &layout = ctx.layouts[objt->name];
+                    auto it = layout.methods.find(callee_mem->member);
+                    if (it != layout.methods.end()) {
+                        call->type = it->second.def->return_type;
+                        return call->type;
+                    }
+                }
+            }
+            call->type = Type::make_unknown();
+            return call->type;
+        }
+        expr->type = Type::make_unknown();
+        return expr->type;
+    }
+
+    void check_stmt(Statement *stmt) {
+        if (auto var = dynamic_cast<VarDeclStmt *>(stmt)) {
+            TypePtr declared = var->type;
+            TypePtr init_type = Type::make_unknown();
+            if (var->init) init_type = check_expr(var->init.get());
+            if (declared->kind == Type::Kind::Unknown) declared = init_type;
+            if (declared->kind == Type::Kind::Array && declared->elem && declared->elem->kind == Type::Kind::Unknown && init_type->kind == Type::Kind::Array && init_type->elem) {
+                declared->elem = init_type->elem;
+            }
+            var->type = declared;
+            define(var->name, declared);
+            return;
+        }
+        if (auto asg = dynamic_cast<AssignStmt *>(stmt)) {
+            check_expr(asg->target.get());
+            check_expr(asg->value.get());
+            return;
+        }
+        if (auto expr = dynamic_cast<ExprStmt *>(stmt)) {
+            check_expr(expr->expr.get());
+            return;
+        }
+        if (auto ret = dynamic_cast<ReturnStmt *>(stmt)) {
+            if (ret->value) check_expr(ret->value.get());
+            return;
+        }
+        if (auto iff = dynamic_cast<IfStmt *>(stmt)) {
+            check_expr(iff->cond.get());
+            push_scope();
+            for (auto &s : iff->then_body) check_stmt(s.get());
+            pop_scope();
+            push_scope();
+            for (auto &s : iff->else_body) check_stmt(s.get());
+            pop_scope();
+            return;
+        }
+        if (auto wh = dynamic_cast<WhileStmt *>(stmt)) {
+            check_expr(wh->cond.get());
+            push_scope();
+            for (auto &s : wh->body) check_stmt(s.get());
+            pop_scope();
+            return;
+        }
+    }
+
+    void check_function(FunctionDef &fn) {
+        current_function = fn.name;
+        current_class.clear();
+        push_scope();
+        for (auto &param : fn.params) define(param.name, param.type);
+        for (auto &stmt : fn.body) check_stmt(stmt.get());
+        pop_scope();
+    }
+
+    void check_method(const std::string &class_name, MethodDef &method) {
+        current_class = class_name;
+        current_function = method.name;
+        push_scope();
+        define("this", Type::make_class(class_name));
+        for (auto &param : method.params) define(param.name, param.type);
+        for (auto &stmt : method.body) check_stmt(stmt.get());
+        pop_scope();
+    }
+};
+
+struct Codegen {
+    Program &program;
+    SemanticContext &ctx;
+    Emitter emit;
+
+    int label_id = 0;
+
+    struct Local {
+        TypePtr type;
+        std::string name;
+    };
+
+    struct FunctionContext {
+        std::string name;
+        std::string class_name;
+        TypePtr return_type;
+        std::unordered_map<std::string, Local> locals;
+        std::unordered_map<std::string, std::string> const_strings;
+        std::vector<TypePtr> local_types;
+        int param_count = 0;
+        int local_count = 0;
+        std::string temp_i32 = "$t0";
+        std::string temp_i64 = "$t1";
+        std::string temp_i32_alt = "$t2";
+        std::string temp_f64 = "$t3";
+    };
+
+    std::unordered_map<std::string, StringData> string_pool;
+    std::vector<StringData *> string_list;
+    int string_offset = 0;
+    std::unordered_map<MethodDef *, int> method_func_index;
+    std::unordered_map<MethodDef *, int> method_type_index;
+    std::unordered_map<FunctionDef *, int> function_type_index;
+    std::vector<std::string> function_table;
+    std::vector<std::string> type_defs;
+    std::unordered_map<std::string, int> signature_to_type;
+
+    int vtable_base = 0;
+    int inner_base = 0;
+    int scratch_base = 0;
+    int heap_base = 0;
+    int max_slots = 0;
+
+    Codegen(Program &p, SemanticContext &c) : program(p), ctx(c) {}
+
+    bool is_type_identifier(const std::string &name) const {
+        if (name == "Int" || name == "Real" || name == "Bool" || name == "Char" || name == "Void" || name == "String" || name == "Array") {
+            return true;
+        }
+        return ctx.classes.count(name) > 0;
+    }
+
+    std::optional<std::string> eval_string_literal(Expr *expr, FunctionContext &fctx) {
+        if (auto lit = dynamic_cast<StringLiteral *>(expr)) return lit->value;
+        if (auto ident = dynamic_cast<Identifier *>(expr)) {
+            auto it = fctx.const_strings.find(ident->name);
+            if (it != fctx.const_strings.end()) return it->second;
+        }
+        if (auto bin = dynamic_cast<BinaryExpr *>(expr)) {
+            if (bin->op != "+") return std::nullopt;
+            auto left = eval_string_literal(bin->left.get(), fctx);
+            if (!left) return std::nullopt;
+            auto right = eval_string_literal(bin->right.get(), fctx);
+            if (!right) return std::nullopt;
+            return *left + *right;
+        }
+        return std::nullopt;
+    }
+
+    std::string next_label(const std::string &base) {
+        return base + std::to_string(label_id++);
+    }
+
+    int add_type_signature(const std::vector<std::string> &params, const std::string &result) {
+        std::ostringstream sig;
+        sig << "(";
+        for (auto &p : params) sig << p << ",";
+        sig << ")" << result;
+        std::string key = sig.str();
+        auto it = signature_to_type.find(key);
+        if (it != signature_to_type.end()) return it->second;
+
+        int index = static_cast<int>(type_defs.size());
+        std::ostringstream line;
+        line << "(type $t" << index << " (func";
+        for (auto &p : params) line << " (param " << p << ")";
+        if (!result.empty()) line << " (result " << result << ")";
+        line << "))";
+        type_defs.push_back(line.str());
+        signature_to_type[key] = index;
+        return index;
+    }
+
+    std::string wasm_type(const TypePtr &type) {
+        if (!type) return "i32";
+        switch (type->kind) {
+            case Type::Kind::Int:
+            case Type::Kind::Bool:
+            case Type::Kind::Char:
+                return "i64";
+            case Type::Kind::Real:
+                return "f64";
+            case Type::Kind::Void:
+                return "";
+            case Type::Kind::String:
+            case Type::Kind::Array:
+            case Type::Kind::Class:
+            case Type::Kind::Null:
+            case Type::Kind::Unknown:
+            default:
+                return "i32";
+        }
+    }
+
+    int add_string_literal(const std::string &value) {
+        auto it = string_pool.find(value);
+        if (it != string_pool.end()) return it->second.offset;
+        int offset = string_offset;
+        string_pool[value] = StringData{value, offset};
+        string_list.push_back(&string_pool[value]);
+        string_offset += static_cast<int>(value.size());
+        return offset;
+    }
+
+    void build_class_layouts() {
+        int class_id = 0;
+        for (auto &kv : ctx.classes) ctx.layouts[kv.first].class_id = class_id++;
+        for (auto &kv : ctx.classes) build_class_layout(kv.first);
+    }
+
+    void build_class_layout(const std::string &name) {
+        auto &layout = ctx.layouts[name];
+        if (!layout.field_offsets.empty() || !layout.methods.empty()) return;
+
+        auto &cls = ctx.classes[name];
+        int offset = 16;
+        int slot_count = 0;
+        if (!cls.def->parent.empty()) {
+            build_class_layout(cls.def->parent);
+            auto &parent_layout = ctx.layouts[cls.def->parent];
+            layout.field_offsets = parent_layout.field_offsets;
+            layout.methods = parent_layout.methods;
+            offset = parent_layout.size;
+            for (auto &m : parent_layout.methods) slot_count = std::max(slot_count, m.second.slot + 1);
+        }
+
+        for (auto &field : cls.def->fields) {
+            layout.field_offsets[field.name] = offset;
+            offset += 8;
+        }
+        layout.size = offset;
+
+        for (auto &method : cls.def->methods) {
+            bool has_parent = layout.methods.count(method.name) > 0;
+            bool override_allowed = true;
+            if (has_parent) {
+                auto &parent_info = layout.methods[method.name];
+                if (method.is_constructor) {
+                    override_allowed = true;
+                } else if (method.name.rfind("nonVirtual", 0) == 0) {
+                    override_allowed = false;
+                }
+                if (!method.is_constructor) {
+                    if (!type_equals(parent_info.def->return_type, method.return_type, true)) override_allowed = false;
+                    if (parent_info.def->params.size() != method.params.size()) override_allowed = false;
+                    else {
+                        for (size_t i = 0; i < method.params.size(); ++i) {
+                            if (!type_equals(parent_info.def->params[i].type, method.params[i].type, true)) {
+                                override_allowed = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (override_allowed) {
+                    MethodInfo info;
+                    info.def = &method;
+                    info.owner = name;
+                    info.slot = parent_info.slot;
+                    info.overrides = true;
+                    layout.methods[method.name] = info;
+                }
+            }
+            if (!has_parent || (has_parent && !override_allowed)) {
+                if (!has_parent) {
+                    MethodInfo info;
+                    info.def = &method;
+                    info.owner = name;
+                    info.slot = slot_count++;
+                    layout.methods[method.name] = info;
+                }
+            }
+        }
+    }
+
+    void build_method_table() {
+        std::unordered_set<MethodDef *> seen;
+        for (auto &kv : ctx.layouts) {
+            for (auto &m : kv.second.methods) {
+                MethodDef *def = m.second.def;
+                if (seen.insert(def).second) {
+                    std::string fn_name = "$" + m.second.owner + "$" + def->name;
+                    method_func_index[def] = static_cast<int>(function_table.size());
+                    function_table.push_back(fn_name);
+
+                    std::vector<std::string> params;
+                    params.push_back("i32");
+                    for (auto &param : def->params) params.push_back(wasm_type(param.type));
+                    std::string result = wasm_type(def->return_type);
+                    int type_index = add_type_signature(params, result);
+                    method_type_index[def] = type_index;
+                }
+            }
+        }
+        for (auto &kv : ctx.layouts) {
+            for (auto &m : kv.second.methods) max_slots = std::max(max_slots, m.second.slot + 1);
+        }
+    }
+
+    std::string escape_bytes(const std::string &data) {
+        std::ostringstream oss;
+        for (size_t i = 0; i < data.size(); ++i) {
+            unsigned char c = static_cast<unsigned char>(data[i]);
+            if (c == '\\' || c == '"') {
+                oss << '\\' << c;
+            } else if (c == '\n') {
+                oss << "\\0a";
+            } else if (c < 32 || c > 126) {
+                const char *hex = "0123456789abcdef";
+                oss << "\\";
+                oss << hex[(c >> 4) & 0x0f];
+                oss << hex[c & 0x0f];
+            } else {
+                oss << static_cast<char>(c);
+            }
+        }
+        return oss.str();
+    }
+
+    void emit_data_segments() {
+        int offset = 0;
+        for (auto *str : string_list) {
+            str->offset = offset;
+            offset += static_cast<int>(str->value.size());
+        }
+        offset = (offset + 3) & ~3;
+
+        const size_t layout_count = ctx.layouts.size();
+        const size_t max_slots_size = static_cast<size_t>(max_slots);
+        std::vector<int> vtable(layout_count * max_slots_size, 0);
+        for (auto &kv : ctx.layouts) {
+            int cid = kv.second.class_id;
+            for (auto &m : kv.second.methods) {
+                int slot = m.second.slot;
+                size_t index = static_cast<size_t>(cid) * max_slots_size + static_cast<size_t>(slot);
+                vtable[index] = method_func_index[m.second.def];
+            }
+        }
+
+        int vtable_offset = offset;
+        offset += static_cast<int>(vtable.size() * 4);
+
+        std::vector<int> inner_table(layout_count * layout_count * max_slots_size, 0);
+        for (auto &current : ctx.layouts) {
+            int current_id = current.second.class_id;
+            for (auto &actual : ctx.layouts) {
+                int actual_id = actual.second.class_id;
+                std::vector<std::string> chain;
+                std::string cur = actual.first;
+                while (!cur.empty()) {
+                    chain.push_back(cur);
+                    cur = ctx.classes[cur].def->parent;
+                }
+                bool is_ancestor = false;
+                for (auto &name : chain) if (name == current.first) is_ancestor = true;
+                if (!is_ancestor) continue;
+                int current_pos = -1;
+                for (size_t i = 0; i < chain.size(); ++i) if (chain[i] == current.first) current_pos = static_cast<int>(i);
+
+                for (int slot = 0; slot < max_slots; ++slot) {
+                    size_t current_func_index = static_cast<size_t>(current_id) * max_slots_size + static_cast<size_t>(slot);
+                    int current_func = vtable[current_func_index];
+                    int next_func = 0;
+                    for (int i = current_pos - 1; i >= 0; --i) {
+                        size_t chain_index = static_cast<size_t>(i);
+                        int cid = ctx.layouts[chain[chain_index]].class_id;
+                        size_t func_index = static_cast<size_t>(cid) * max_slots_size + static_cast<size_t>(slot);
+                        int func = vtable[func_index];
+                        if (func != current_func) {
+                            next_func = func;
+                            break;
+                        }
+                    }
+                    size_t idx = (static_cast<size_t>(current_id) * layout_count + static_cast<size_t>(actual_id)) * max_slots_size + static_cast<size_t>(slot);
+                    inner_table[idx] = next_func + 1;
+                }
+            }
+        }
+
+        int inner_offset = offset;
+        offset += static_cast<int>(inner_table.size() * 4);
+
+        int scratch_offset = (offset + 7) & ~7;
+        offset = scratch_offset + 256;
+        int heap_offset = (offset + 7) & ~7;
+
+        vtable_base = vtable_offset;
+        inner_base = inner_offset;
+        scratch_base = scratch_offset;
+        heap_base = heap_offset;
+
+        if (!string_list.empty()) {
+            std::string blob;
+            for (auto *str : string_list) blob += str->value;
+            emit.line("(data (i32.const 0) \"" + escape_bytes(blob) + "\")");
+        }
+
+        if (!vtable.empty()) {
+            std::string blob;
+            blob.resize(vtable.size() * 4);
+            for (size_t i = 0; i < vtable.size(); ++i) {
+                int v = vtable[i];
+                blob[i * 4 + 0] = static_cast<char>(v & 0xff);
+                blob[i * 4 + 1] = static_cast<char>((v >> 8) & 0xff);
+                blob[i * 4 + 2] = static_cast<char>((v >> 16) & 0xff);
+                blob[i * 4 + 3] = static_cast<char>((v >> 24) & 0xff);
+            }
+            emit.line("(data (i32.const " + std::to_string(vtable_offset) + ") \"" + escape_bytes(blob) + "\")");
+        }
+
+        if (!inner_table.empty()) {
+            std::string blob;
+            blob.resize(inner_table.size() * 4);
+            for (size_t i = 0; i < inner_table.size(); ++i) {
+                int v = inner_table[i];
+                blob[i * 4 + 0] = static_cast<char>(v & 0xff);
+                blob[i * 4 + 1] = static_cast<char>((v >> 8) & 0xff);
+                blob[i * 4 + 2] = static_cast<char>((v >> 16) & 0xff);
+                blob[i * 4 + 3] = static_cast<char>((v >> 24) & 0xff);
+            }
+            emit.line("(data (i32.const " + std::to_string(inner_offset) + ") \"" + escape_bytes(blob) + "\")");
+        }
+
+        emit.line("(data (i32.const " + std::to_string(scratch_offset) + ") \"" + escape_bytes(std::string(256, '\0')) + "\")");
+    }
+
+    void emit_runtime() {
+        emit.line("(import \"wasi_snapshot_preview1\" \"fd_write\" (func $fd_write (param i32 i32 i32 i32) (result i32)))");
+        emit.line("(memory (export \"memory\") 1)");
+        emit.line("(global $heap (mut i32) (i32.const 0))");
+        emit.line("(global $vtable_base (mut i32) (i32.const 0))");
+        emit.line("(global $inner_base (mut i32) (i32.const 0))");
+        emit.line("(global $scratch (mut i32) (i32.const 0))");
+        emit.line("(global $num_classes i32 (i32.const " + std::to_string(ctx.layouts.size()) + "))");
+
+        emit.open("(func $malloc (param $size i32) (result i32)");
+        emit.line("(local $new_heap i32)");
+        emit.line("(local $mem_bytes i32)");
+        emit.line("(local $grow_pages i32)");
+        emit.line("local.get $size");
+        emit.line("i32.const 7");
+        emit.line("i32.add");
+        emit.line("i32.const -8");
+        emit.line("i32.and");
+        emit.line("local.set $size");
+        emit.line("global.get $heap");
+        emit.line("local.get $size");
+        emit.line("i32.add");
+        emit.line("local.set $new_heap");
+        emit.line("memory.size");
+        emit.line("i32.const 65536");
+        emit.line("i32.mul");
+        emit.line("local.set $mem_bytes");
+        emit.line("local.get $new_heap");
+        emit.line("local.get $mem_bytes");
+        emit.line("i32.gt_u");
+        emit.open("if");
+        emit.line("local.get $new_heap");
+        emit.line("i32.const 65535");
+        emit.line("i32.add");
+        emit.line("i32.const -65536");
+        emit.line("i32.and");
+        emit.line("local.get $mem_bytes");
+        emit.line("i32.sub");
+        emit.line("i32.const 65536");
+        emit.line("i32.div_u");
+        emit.line("local.set $grow_pages");
+        emit.line("local.get $grow_pages");
+        emit.line("memory.grow");
+        emit.line("drop");
+        emit.close("end");
+        emit.line("global.get $heap");
+        emit.line("local.get $size");
+        emit.line("i32.add");
+        emit.line("global.set $heap");
+        emit.line("global.get $heap");
+        emit.line("local.get $size");
+        emit.line("i32.sub");
+        emit.close(")");
+
+        emit.open("(func $memcpy (param $dst i32) (param $src i32) (param $len i32)");
+        emit.line("(local $i i32)");
+        emit.open("block $done");
+        emit.open("loop $loop");
+        emit.line("local.get $i");
+        emit.line("local.get $len");
+        emit.line("i32.ge_u");
+        emit.line("br_if $done");
+        emit.line("local.get $dst");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("local.get $src");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("i32.store8");
+        emit.line("local.get $i");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $i");
+        emit.line("br $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.close(")");
+
+        emit.open("(func $write_buf (param $ptr i32) (param $len i32)");
+        emit.line("global.get $scratch");
+        emit.line("local.get $ptr");
+        emit.line("i32.store");
+        emit.line("global.get $scratch");
+        emit.line("i32.const 4");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i32.store");
+        emit.line("i32.const 1");
+        emit.line("global.get $scratch");
+        emit.line("i32.const 1");
+        emit.line("global.get $scratch");
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("call $fd_write");
+        emit.line("drop");
+        emit.close(")");
+
+        emit.open("(func $incref (param $ptr i32)");
+        emit.line("local.get $ptr");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.const 1");
+        emit.line("i64.add");
+        emit.line("i64.store");
+        emit.close(")");
+
+        emit.open("(func $decref (param $ptr i32)");
+        emit.line("local.get $ptr");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.const 1");
+        emit.line("i64.sub");
+        emit.line("i64.store");
+        emit.close(")");
+
+        emit.open("(func $print_literal (param $ptr i32) (param $len i32)");
+        emit.line("local.get $ptr");
+        emit.line("local.get $len");
+        emit.line("call $write_buf");
+        emit.close(")");
+
+        emit.open("(func $print_newline");
+        emit.line("i32.const " + std::to_string(add_string_literal("\n")));
+        emit.line("i32.const 1");
+        emit.line("call $print_literal");
+        emit.close(")");
+
+        emit.open("(func $itoa (param $value i64) (result i32) (result i32)");
+        emit.line("(local $ptr i32)");
+        emit.line("(local $len i32)");
+        emit.line("(local $neg i32)");
+        emit.line("global.get $scratch");
+        emit.line("i32.const 128");
+        emit.line("i32.add");
+        emit.line("local.set $ptr");
+        emit.line("local.get $value");
+        emit.line("i64.const 0");
+        emit.line("i64.lt_s");
+        emit.open("if");
+        emit.line("i32.const 1");
+        emit.line("local.set $neg");
+        emit.line("local.get $value");
+        emit.line("i64.const -1");
+        emit.line("i64.mul");
+        emit.line("local.set $value");
+        emit.close("end");
+        emit.line("local.get $value");
+        emit.line("i64.eqz");
+        emit.open("if");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 1");
+        emit.line("i32.sub");
+        emit.line("local.tee $ptr");
+        emit.line("i32.const 48");
+        emit.line("i32.store8");
+        emit.line("i32.const 1");
+        emit.line("local.set $len");
+        emit.open("else");
+        emit.open("loop $loop");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 1");
+        emit.line("i32.sub");
+        emit.line("local.tee $ptr");
+        emit.line("local.get $value");
+        emit.line("i64.const 10");
+        emit.line("i64.rem_u");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 48");
+        emit.line("i32.add");
+        emit.line("i32.store8");
+        emit.line("local.get $len");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $len");
+        emit.line("local.get $value");
+        emit.line("i64.const 10");
+        emit.line("i64.div_u");
+        emit.line("local.set $value");
+        emit.line("local.get $value");
+        emit.line("i64.const 0");
+        emit.line("i64.gt_u");
+        emit.line("br_if $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $neg");
+        emit.open("if");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 1");
+        emit.line("i32.sub");
+        emit.line("local.tee $ptr");
+        emit.line("i32.const 45");
+        emit.line("i32.store8");
+        emit.line("local.get $len");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $len");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("local.get $len");
+        emit.close(")");
+
+        emit.open("(func $print_int (param $value i64)");
+        emit.line("local.get $value");
+        emit.line("call $itoa");
+        emit.line("call $write_buf");
+        emit.close(")");
+
+        emit.open("(func $print_real (param $value f64)");
+        emit.line("local.get $value");
+        emit.line("i64.trunc_f64_s");
+        emit.line("call $print_int");
+        emit.close(")");
+
+        emit.open("(func $print_bool (param $value i64)");
+        emit.line("local.get $value");
+        emit.line("i64.eqz");
+        emit.open("if");
+        emit.line("i32.const " + std::to_string(add_string_literal("false")));
+        emit.line("i32.const 5");
+        emit.line("call $print_literal");
+        emit.open("else");
+        emit.line("i32.const " + std::to_string(add_string_literal("true")));
+        emit.line("i32.const 4");
+        emit.line("call $print_literal");
+        emit.close("end");
+        emit.close(")");
+
+        emit.open("(func $string_new (param $src i32) (param $len i32) (result i32)");
+        emit.line("(local $ptr i32)");
+        emit.line("(local $data i32)");
+        emit.line("local.get $len");
+        emit.line("call $malloc");
+        emit.line("local.set $data");
+        emit.line("local.get $data");
+        emit.line("local.get $src");
+        emit.line("local.get $len");
+        emit.line("call $memcpy");
+        emit.line("i32.const 32");
+        emit.line("call $malloc");
+        emit.line("local.set $ptr");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.extend_i32_u");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("local.get $data");
+        emit.line("i32.store");
+        emit.line("local.get $ptr");
+        emit.close(")");
+
+        emit.open("(func $print_string (param $ptr i32)");
+        emit.line("local.get $ptr");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("call $write_buf");
+        emit.close(")");
+
+        emit.open("(func $string_length (param $ptr i32) (result i64)");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.close(")");
+
+        emit.open("(func $string_concat (param $a i32) (param $b i32) (result i32)");
+        emit.line("(local $len i32)");
+        emit.line("(local $data i32)");
+        emit.line("(local $ptr i32)");
+        emit.line("local.get $a");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("local.get $b");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $b");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("local.get $a");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $a");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $b");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.add");
+        emit.line("i32.wrap_i64");
+        emit.line("local.set $len");
+        emit.line("local.get $len");
+        emit.line("call $malloc");
+        emit.line("local.set $data");
+        emit.line("local.get $data");
+        emit.line("local.get $a");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $a");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("call $memcpy");
+        emit.line("local.get $data");
+        emit.line("local.get $a");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.add");
+        emit.line("local.get $b");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $b");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("call $memcpy");
+        emit.line("i32.const 32");
+        emit.line("call $malloc");
+        emit.line("local.set $ptr");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.extend_i32_u");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("local.get $data");
+        emit.line("i32.store");
+        emit.line("local.get $ptr");
+        emit.close(")");
+
+        emit.open("(func $string_eq (param $a i32) (param $b i32) (result i64)");
+        emit.line("(local $len i32)");
+        emit.line("(local $i i32)");
+        emit.line("local.get $a");
+        emit.line("local.get $b");
+        emit.line("i32.eq");
+        emit.open("if");
+        emit.line("i64.const 1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $a");
+        emit.line("i32.eqz");
+        emit.line("local.get $b");
+        emit.line("i32.eqz");
+        emit.line("i32.or");
+        emit.open("if");
+        emit.line("i64.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $a");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $b");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.ne");
+        emit.open("if");
+        emit.line("i64.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $a");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("local.set $len");
+        emit.open("block $done");
+        emit.open("loop $loop");
+        emit.line("local.get $i");
+        emit.line("local.get $len");
+        emit.line("i32.ge_u");
+        emit.line("br_if $done");
+        emit.line("local.get $a");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("local.get $b");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $i");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("i32.ne");
+        emit.open("if");
+        emit.line("i64.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $i");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $i");
+        emit.line("br $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("i64.const 1");
+        emit.close(")");
+
+        emit.open("(func $array_new (param $len i64) (result i32)");
+        emit.line("(local $ptr i32)");
+        emit.line("(local $data i32)");
+        emit.line("local.get $len");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("call $malloc");
+        emit.line("local.set $data");
+        emit.line("i32.const 40");
+        emit.line("call $malloc");
+        emit.line("local.set $ptr");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("local.get $data");
+        emit.line("i32.store");
+        emit.line("local.get $ptr");
+        emit.close(")");
+
+        emit.open("(func $array_size (param $ptr i32) (result i64)");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.close(")");
+
+        emit.open("(func $array_get_i64 (param $ptr i32) (param $idx i64) (result i64)");
+        emit.line("local.get $idx");
+        emit.line("i64.const 0");
+        emit.line("i64.lt_s");
+        emit.open("if");
+        emit.line("i64.const -1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $idx");
+        emit.line("i64.le_s");
+        emit.open("if");
+        emit.line("i64.const -1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $idx");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.close(")");
+
+        emit.open("(func $array_get_f64 (param $ptr i32) (param $idx i64) (result f64)");
+        emit.line("local.get $idx");
+        emit.line("i64.const 0");
+        emit.line("i64.lt_s");
+        emit.open("if");
+        emit.line("f64.const -1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $idx");
+        emit.line("i64.le_s");
+        emit.open("if");
+        emit.line("f64.const -1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $idx");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("f64.load");
+        emit.close(")");
+
+        emit.open("(func $array_get_ptr (param $ptr i32) (param $idx i64) (result i32)");
+        emit.line("(local $val i64)");
+        emit.line("local.get $ptr");
+        emit.line("local.get $idx");
+        emit.line("call $array_get_i64");
+        emit.line("local.set $val");
+        emit.line("local.get $val");
+        emit.line("i64.const -1");
+        emit.line("i64.eq");
+        emit.open("if");
+        emit.line("i32.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $val");
+        emit.line("i32.wrap_i64");
+        emit.close(")");
+
+        emit.open("(func $array_set_i64 (param $ptr i32) (param $idx i64) (param $val i64)");
+        emit.line("local.get $idx");
+        emit.line("i64.const 0");
+        emit.line("i64.lt_s");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $idx");
+        emit.line("i64.le_s");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $idx");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("local.get $val");
+        emit.line("i64.store");
+        emit.close(")");
+
+        emit.open("(func $array_set_f64 (param $ptr i32) (param $idx i64) (param $val f64)");
+        emit.line("local.get $idx");
+        emit.line("i64.const 0");
+        emit.line("i64.lt_s");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.get $idx");
+        emit.line("i64.le_s");
+        emit.open("if");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $idx");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("local.get $val");
+        emit.line("f64.store");
+        emit.close(")");
+
+        emit.open("(func $array_push_i64 (param $ptr i32) (param $val i64)");
+        emit.line("(local $len i64)");
+        emit.line("(local $cap i64)");
+        emit.line("(local $data i32)");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.set $len");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("local.set $cap");
+        emit.line("local.get $len");
+        emit.line("local.get $cap");
+        emit.line("i64.eq");
+        emit.open("if");
+        emit.line("local.get $cap");
+        emit.line("i64.eqz");
+        emit.open("if");
+        emit.line("i64.const 4");
+        emit.line("local.set $cap");
+        emit.open("else");
+        emit.line("local.get $cap");
+        emit.line("i64.const 2");
+        emit.line("i64.mul");
+        emit.line("local.set $cap");
+        emit.close("end");
+        emit.line("local.get $cap");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("call $malloc");
+        emit.line("local.set $data");
+        emit.line("local.get $data");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $len");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("call $memcpy");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("local.get $data");
+        emit.line("i32.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("local.get $cap");
+        emit.line("i64.store");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $len");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("local.get $val");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.const 1");
+        emit.line("i64.add");
+        emit.line("i64.store");
+        emit.close(")");
+
+        emit.open("(func $array_push_f64 (param $ptr i32) (param $val f64)");
+        emit.line("local.get $ptr");
+        emit.line("local.get $val");
+        emit.line("i64.reinterpret_f64");
+        emit.line("call $array_push_i64");
+        emit.close(")");
+
+        emit.open("(func $array_pop_i64 (param $ptr i32) (result i64)");
+        emit.line("(local $len i64)");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.eqz");
+        emit.open("if");
+        emit.line("i64.const -1");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i64.const 1");
+        emit.line("i64.sub");
+        emit.line("local.set $len");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("local.get $len");
+        emit.line("i64.store");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 32");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.get $len");
+        emit.line("i32.wrap_i64");
+        emit.line("i32.const 8");
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.close(")");
+
+        emit.open("(func $array_pop_f64 (param $ptr i32) (result f64)");
+        emit.line("local.get $ptr");
+        emit.line("call $array_pop_i64");
+        emit.line("f64.reinterpret_i64");
+        emit.close(")");
+
+        emit.open("(func $array_pop_ptr (param $ptr i32) (result i32)");
+        emit.line("(local $val i64)");
+        emit.line("local.get $ptr");
+        emit.line("call $array_pop_i64");
+        emit.line("local.set $val");
+        emit.line("local.get $val");
+        emit.line("i64.const -1");
+        emit.line("i64.eq");
+        emit.open("if");
+        emit.line("i32.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $val");
+        emit.line("i32.wrap_i64");
+        emit.close(")");
+    }
+
+    void emit_function(FunctionDef &fn) {
+        FunctionContext fctx;
+        fctx.name = fn.name;
+        fctx.return_type = fn.return_type;
+
+        std::vector<std::string> params;
+        for (auto &param : fn.params) {
+            params.push_back(wasm_type(param.type));
+            fctx.locals[param.name] = {param.type, "$p" + std::to_string(fctx.param_count++)};
+        }
+        int type_index = add_type_signature(params, wasm_type(fn.return_type));
+        function_type_index[&fn] = type_index;
+
+        std::ostringstream header;
+        header << "(func $" << fn.name;
+        for (size_t i = 0; i < params.size(); ++i) {
+            header << " (param " << fctx.locals[fn.params[i].name].name << " " << params[i] << ")";
+        }
+        if (!wasm_type(fn.return_type).empty()) header << " (result " << wasm_type(fn.return_type) << ")";
+        emit.open(header.str());
+
+        collect_locals(fn.body, fctx);
+        emit_local_decls(fctx);
+        emit_statements(fn.body, fctx);
+        if (fn.return_type->kind == Type::Kind::Void) {
+            emit.line("return");
+        } else if (fn.return_type->kind == Type::Kind::Real) {
+            emit.line("f64.const 0");
+            emit.line("return");
+        } else if (fn.return_type->is_ref()) {
+            emit.line("i32.const 0");
+            emit.line("return");
+        } else {
+            emit.line("i64.const 0");
+            emit.line("return");
+        }
+        emit.close(")");
+    }
+
+    void emit_method(const std::string &class_name, MethodDef &method) {
+        FunctionContext fctx;
+        fctx.name = class_name + "$" + method.name;
+        fctx.class_name = class_name;
+        fctx.return_type = method.return_type;
+
+        std::ostringstream header;
+        header << "(func $" << class_name << "$" << method.name;
+        header << " (param $p0 i32)";
+        fctx.locals["this"] = {Type::make_class(class_name), "$p0"};
+        fctx.param_count++;
+        for (size_t i = 0; i < method.params.size(); ++i) {
+            std::string pname = "$p" + std::to_string(fctx.param_count);
+            header << " (param " << pname << " " << wasm_type(method.params[i].type) << ")";
+            fctx.locals[method.params[i].name] = {method.params[i].type, pname};
+            fctx.param_count++;
+        }
+        if (!wasm_type(method.return_type).empty()) header << " (result " << wasm_type(method.return_type) << ")";
+        emit.open(header.str());
+
+        collect_locals(method.body, fctx);
+        emit_local_decls(fctx);
+        emit_statements(method.body, fctx);
+        if (method.return_type->kind == Type::Kind::Void) {
+            emit.line("return");
+        } else if (method.return_type->kind == Type::Kind::Real) {
+            emit.line("f64.const 0");
+            emit.line("return");
+        } else if (method.return_type->is_ref()) {
+            emit.line("i32.const 0");
+            emit.line("return");
+        } else {
+            emit.line("i64.const 0");
+            emit.line("return");
+        }
+        emit.close(")");
+    }
+
+    void collect_locals(const std::vector<std::unique_ptr<Statement>> &stmts, FunctionContext &fctx) {
+        for (auto &stmt : stmts) {
+            if (auto var = dynamic_cast<VarDeclStmt *>(stmt.get())) {
+                if (!fctx.locals.count(var->name)) {
+                    std::string name = "$l" + std::to_string(fctx.local_count++);
+                    fctx.locals[var->name] = {var->type, name};
+                    fctx.local_types.push_back(var->type);
+                }
+            }
+            if (auto iff = dynamic_cast<IfStmt *>(stmt.get())) {
+                collect_locals(iff->then_body, fctx);
+                collect_locals(iff->else_body, fctx);
+            }
+            if (auto wh = dynamic_cast<WhileStmt *>(stmt.get())) collect_locals(wh->body, fctx);
+        }
+    }
+
+    void emit_local_decls(FunctionContext &fctx) {
+        for (size_t i = 0; i < fctx.local_types.size(); ++i) {
+            emit.line("(local $l" + std::to_string(i) + " " + wasm_type(fctx.local_types[i]) + ")");
+        }
+        emit.line("(local " + fctx.temp_i32 + " i32)");
+        emit.line("(local " + fctx.temp_i64 + " i64)");
+        emit.line("(local " + fctx.temp_i32_alt + " i32)");
+        emit.line("(local " + fctx.temp_f64 + " f64)");
+    }
+
+    void emit_statements(const std::vector<std::unique_ptr<Statement>> &stmts, FunctionContext &fctx) {
+        for (auto &stmt : stmts) emit_statement(stmt.get(), fctx);
+    }
+
+    void emit_statement(Statement *stmt, FunctionContext &fctx) {
+        if (auto var = dynamic_cast<VarDeclStmt *>(stmt)) {
+            if (var->init) {
+                emit_expr(var->init.get(), fctx, var->type);
+                store_local(fctx, var->name);
+                if (var->type->kind == Type::Kind::String) {
+                    auto lit = eval_string_literal(var->init.get(), fctx);
+                    if (lit) fctx.const_strings[var->name] = *lit;
+                    else fctx.const_strings.erase(var->name);
+                }
+            }
+            return;
+        }
+        if (auto asg = dynamic_cast<AssignStmt *>(stmt)) {
+            emit_assignment(asg->target.get(), asg->value.get(), fctx);
+            return;
+        }
+        if (auto expr = dynamic_cast<ExprStmt *>(stmt)) {
+            emit_expr(expr->expr.get(), fctx, expr->expr->type);
+            if (expr->expr->type->kind != Type::Kind::Void) emit.line("drop");
+            return;
+        }
+        if (auto ret = dynamic_cast<ReturnStmt *>(stmt)) {
+            if (ret->value) {
+                emit_expr(ret->value.get(), fctx, fctx.return_type);
+            } else if (fctx.return_type && fctx.return_type->kind != Type::Kind::Void) {
+                if (fctx.return_type->kind == Type::Kind::Real) emit.line("f64.const 0");
+                else if (fctx.return_type->is_ref()) emit.line("i32.const 0");
+                else emit.line("i64.const 0");
+            }
+            emit.line("return");
+            return;
+        }
+        if (auto iff = dynamic_cast<IfStmt *>(stmt)) {
+            emit_expr(iff->cond.get(), fctx, Type::make(Type::Kind::Bool));
+            emit.line("i64.const 0");
+            emit.line("i64.ne");
+            emit.open("if");
+            emit_statements(iff->then_body, fctx);
+            if (!iff->else_body.empty()) {
+                emit.open("else");
+                emit_statements(iff->else_body, fctx);
+                emit.close("end");
+            } else {
+                emit.close("end");
+            }
+            return;
+        }
+        if (auto wh = dynamic_cast<WhileStmt *>(stmt)) {
+            std::string loop = next_label("loop");
+            std::string block = next_label("block");
+            emit.open("block $" + block);
+            emit.open("loop $" + loop);
+            emit_expr(wh->cond.get(), fctx, Type::make(Type::Kind::Bool));
+            emit.line("i64.eqz");
+            emit.line("br_if $" + block);
+            emit_statements(wh->body, fctx);
+            emit.line("br $" + loop);
+            emit.close("end");
+            emit.close("end");
+            return;
+        }
+        if (dynamic_cast<InnerStmt *>(stmt)) {
+            emit_inner_call(fctx);
+        }
+    }
+
+    void emit_inner_call(FunctionContext &fctx) {
+        if (fctx.class_name.empty()) return;
+        auto &layout = ctx.layouts[fctx.class_name];
+        std::string method_name = fctx.name.substr(fctx.class_name.size() + 1);
+        auto it = layout.methods.find(method_name);
+        if (it == layout.methods.end()) return;
+        int slot = it->second.slot;
+        emit.line("local.get $p0");
+        emit.line("i32.load");
+        emit.line("i32.const " + std::to_string(layout.class_id));
+        emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.mul");
+        emit.line("i32.add");
+        emit.line("i32.const " + std::to_string(slot));
+        emit.line("i32.add");
+        emit.line("i32.const " + std::to_string(static_cast<int>(ctx.layouts.size())));
+        emit.line("i32.mul");
+        emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.add");
+        emit.line("i32.const 4");
+        emit.line("i32.mul");
+        emit.line("global.get $inner_base");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.set " + fctx.temp_i32);
+        emit.line("local.get " + fctx.temp_i32);
+        emit.open("if");
+        emit.line("local.get $p0");
+        for (size_t i = 0; i < it->second.def->params.size(); ++i) emit.line("local.get $p" + std::to_string(i + 1));
+        emit.line("local.get " + fctx.temp_i32);
+        emit.line("i32.const 1");
+        emit.line("i32.sub");
+        emit.line("call_indirect (type $t" + std::to_string(method_type_index[it->second.def]) + ")");
+        if (it->second.def->return_type->kind != Type::Kind::Void) emit.line("drop");
+        emit.close("end");
+    }
+
+    void emit_assignment(Expr *target, Expr *value, FunctionContext &fctx) {
+        if (auto ident = dynamic_cast<Identifier *>(target)) {
+            if (fctx.locals.count(ident->name)) {
+                emit_expr(value, fctx, ident->type);
+                store_local(fctx, ident->name);
+                if (ident->type->kind == Type::Kind::String) {
+                    auto lit = eval_string_literal(value, fctx);
+                    if (lit) fctx.const_strings[ident->name] = *lit;
+                    else fctx.const_strings.erase(ident->name);
+                }
+            } else if (!fctx.class_name.empty()) {
+                emit.line("local.get $p0");
+                int offset = ctx.layouts[fctx.class_name].field_offsets[ident->name];
+                emit.line("i32.const " + std::to_string(offset));
+                emit.line("i32.add");
+                emit.line("local.set " + fctx.temp_i32);
+                emit.line("local.get " + fctx.temp_i32);
+                emit_expr(value, fctx, ident->type);
+                emit_store(ident->type);
+            }
+            return;
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(target)) {
+            emit_expr(mem->object.get(), fctx, mem->object->type);
+            int offset = ctx.layouts[mem->object->type->name].field_offsets[mem->member];
+            emit.line("i32.const " + std::to_string(offset));
+            emit.line("i32.add");
+            emit.line("local.set " + fctx.temp_i32);
+            emit.line("local.get " + fctx.temp_i32);
+            emit_expr(value, fctx, mem->type);
+            emit_store(mem->type);
+            return;
+        }
+        if (auto idx = dynamic_cast<IndexExpr *>(target)) {
+            emit_expr(idx->array.get(), fctx, idx->array->type);
+            emit_expr(idx->index.get(), fctx, Type::make(Type::Kind::Int));
+            emit_expr(value, fctx, idx->type);
+            if (idx->type->kind == Type::Kind::Real) {
+                emit.line("call $array_set_f64");
+            } else {
+                if (idx->type->is_ref()) emit.line("i64.extend_i32_u");
+                emit.line("call $array_set_i64");
+            }
+            return;
+        }
+    }
+
+    void emit_expr(Expr *expr, FunctionContext &fctx, const TypePtr &expected) {
+        if (auto lit = dynamic_cast<IntLiteral *>(expr)) {
+            emit.line("i64.const " + std::to_string(lit->value));
+            return;
+        }
+        if (auto lit = dynamic_cast<RealLiteral *>(expr)) {
+            emit.line("f64.const " + std::to_string(lit->value));
+            return;
+        }
+        if (auto lit = dynamic_cast<StringLiteral *>(expr)) {
+            int offset = add_string_literal(lit->value);
+            emit.line("i32.const " + std::to_string(offset));
+            emit.line("i32.const " + std::to_string(lit->value.size()));
+            emit.line("call $string_new");
+            return;
+        }
+        if (auto lit = dynamic_cast<BoolLiteral *>(expr)) {
+            emit.line(std::string("i64.const ") + (lit->value ? "1" : "0"));
+            return;
+        }
+        if (auto lit = dynamic_cast<CharLiteral *>(expr)) {
+            emit.line("i64.const " + std::to_string(static_cast<int>(lit->value)));
+            return;
+        }
+        if (dynamic_cast<NullLiteral *>(expr)) {
+            emit.line("i32.const 0");
+            return;
+        }
+        if (auto ident = dynamic_cast<Identifier *>(expr)) {
+            if (fctx.locals.count(ident->name)) {
+                load_local(fctx, ident->name);
+            } else if (!fctx.class_name.empty()) {
+                emit.line("local.get $p0");
+                int offset = ctx.layouts[fctx.class_name].field_offsets[ident->name];
+                emit.line("i32.const " + std::to_string(offset));
+                emit.line("i32.add");
+                emit_load(ident->type);
+            }
+            return;
+        }
+        if (dynamic_cast<ThisExpr *>(expr)) {
+            emit.line("local.get $p0");
+            return;
+        }
+        if (auto unary = dynamic_cast<UnaryExpr *>(expr)) {
+            emit_expr(unary->expr.get(), fctx, unary->expr->type);
+            if (unary->op == "-") {
+                if (unary->expr->type->kind == Type::Kind::Real) emit.line("f64.neg");
+                else { emit.line("i64.const -1"); emit.line("i64.mul"); }
+            } else if (unary->op == "!") {
+                emit.line("i64.const 0");
+                emit.line("i64.eq");
+                emit.line("i64.extend_i32_u");
+            }
+            return;
+        }
+        if (auto bin = dynamic_cast<BinaryExpr *>(expr)) {
+            if (bin->op == "&&" || bin->op == "||") {
+                emit_expr(bin->left.get(), fctx, bin->left->type);
+                emit.line("i64.const 0");
+                emit.line("i64.ne");
+                emit.line("i64.extend_i32_u");
+                emit.line("local.set " + fctx.temp_i64);
+                emit_expr(bin->right.get(), fctx, bin->right->type);
+                emit.line("i64.const 0");
+                emit.line("i64.ne");
+                emit.line("i64.extend_i32_u");
+                emit.line("local.get " + fctx.temp_i64);
+                if (bin->op == "&&") emit.line("i64.and");
+                else emit.line("i64.or");
+                return;
+            }
+            emit_expr(bin->left.get(), fctx, bin->left->type);
+            emit_expr(bin->right.get(), fctx, bin->right->type);
+            if (bin->op == "+" && bin->left->type->kind == Type::Kind::String) {
+                emit.line("call $string_concat");
+                return;
+            }
+            if ((bin->op == "==" || bin->op == "!=") &&
+                (bin->left->type->is_ref() || bin->right->type->is_ref())) {
+                if (bin->left->type->kind == Type::Kind::String || bin->right->type->kind == Type::Kind::String) {
+                    emit.line("call $string_eq");
+                    if (bin->op == "!=") {
+                        emit.line("i64.eqz");
+                        emit.line("i64.extend_i32_u");
+                    }
+                } else {
+                    if (bin->op == "==") emit.line("i32.eq");
+                    else emit.line("i32.ne");
+                    emit.line("i64.extend_i32_u");
+                }
+                return;
+            }
+            if (bin->left->type->kind == Type::Kind::Real || bin->right->type->kind == Type::Kind::Real) {
+                if (bin->op == "+") emit.line("f64.add");
+                else if (bin->op == "-") emit.line("f64.sub");
+                else if (bin->op == "*") emit.line("f64.mul");
+                else if (bin->op == "/") emit.line("f64.div");
+                else if (bin->op == "==") { emit.line("f64.eq"); emit.line("i64.extend_i32_u"); }
+                else if (bin->op == "!=") { emit.line("f64.ne"); emit.line("i64.extend_i32_u"); }
+                else if (bin->op == "<") { emit.line("f64.lt"); emit.line("i64.extend_i32_u"); }
+                else if (bin->op == "<=") { emit.line("f64.le"); emit.line("i64.extend_i32_u"); }
+                else if (bin->op == ">") { emit.line("f64.gt"); emit.line("i64.extend_i32_u"); }
+                else if (bin->op == ">=") { emit.line("f64.ge"); emit.line("i64.extend_i32_u"); }
+                return;
+            }
+            if (bin->op == "+") emit.line("i64.add");
+            else if (bin->op == "-") emit.line("i64.sub");
+            else if (bin->op == "*") emit.line("i64.mul");
+            else if (bin->op == "/") emit.line("i64.div_s");
+            else if (bin->op == "%") emit.line("i64.rem_s");
+            else if (bin->op == "==") {
+                if (bin->left->type->kind == Type::Kind::String) {
+                    emit.line("call $string_eq");
+                } else {
+                    emit.line("i64.eq");
+                    emit.line("i64.extend_i32_u");
+                }
+            }
+            else if (bin->op == "!=") {
+                if (bin->left->type->kind == Type::Kind::String) {
+                    emit.line("call $string_eq");
+                    emit.line("i64.eqz");
+                    emit.line("i64.extend_i32_u");
+                } else {
+                    emit.line("i64.ne");
+                    emit.line("i64.extend_i32_u");
+                }
+            }
+            else if (bin->op == "<") { emit.line("i64.lt_s"); emit.line("i64.extend_i32_u"); }
+            else if (bin->op == "<=") { emit.line("i64.le_s"); emit.line("i64.extend_i32_u"); }
+            else if (bin->op == ">") { emit.line("i64.gt_s"); emit.line("i64.extend_i32_u"); }
+            else if (bin->op == ">=") { emit.line("i64.ge_s"); emit.line("i64.extend_i32_u"); }
+            return;
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(expr)) {
+            emit_expr(mem->object.get(), fctx, mem->object->type);
+            int offset = ctx.layouts[mem->object->type->name].field_offsets[mem->member];
+            emit.line("i32.const " + std::to_string(offset));
+            emit.line("i32.add");
+            emit_load(mem->type);
+            return;
+        }
+        if (auto idx = dynamic_cast<IndexExpr *>(expr)) {
+            if (auto ident = dynamic_cast<Identifier *>(idx->array.get())) {
+                if (is_type_identifier(ident->name)) {
+                    emit_expr(idx->index.get(), fctx, Type::make(Type::Kind::Int));
+                    emit.line("call $array_new");
+                    return;
+                }
+            }
+            emit_expr(idx->array.get(), fctx, idx->array->type);
+            emit_expr(idx->index.get(), fctx, Type::make(Type::Kind::Int));
+            if (expected && expected->kind == Type::Kind::Real) emit.line("call $array_get_f64");
+            else if (expected && expected->is_ref()) emit.line("call $array_get_ptr");
+            else emit.line("call $array_get_i64");
+            return;
+        }
+        if (auto arr = dynamic_cast<ArrayLiteral *>(expr)) {
+            emit.line("i64.const " + std::to_string(arr->elements.size()));
+            emit.line("call $array_new");
+            emit.line("local.set " + fctx.temp_i32_alt);
+            for (size_t i = 0; i < arr->elements.size(); ++i) {
+                emit_expr(arr->elements[i].get(), fctx, arr->elements[i]->type);
+                if (arr->elements[i]->type->kind == Type::Kind::Real) {
+                    emit.line("local.set " + fctx.temp_f64);
+                    emit.line("local.get " + fctx.temp_i32_alt);
+                    emit.line("i64.const " + std::to_string(i));
+                    emit.line("local.get " + fctx.temp_f64);
+                    emit.line("call $array_set_f64");
+                } else {
+                    if (arr->elements[i]->type->is_ref()) emit.line("i64.extend_i32_u");
+                    emit.line("local.set " + fctx.temp_i64);
+                    emit.line("local.get " + fctx.temp_i32_alt);
+                    emit.line("i64.const " + std::to_string(i));
+                    emit.line("local.get " + fctx.temp_i64);
+                    emit.line("call $array_set_i64");
+                }
+            }
+            emit.line("local.get " + fctx.temp_i32_alt);
+            return;
+        }
+        if (auto call = dynamic_cast<CallExpr *>(expr)) {
+            if (auto callee_ident = dynamic_cast<Identifier *>(call->callee.get())) {
+                if (ctx.classes.count(callee_ident->name)) {
+                    emit_new_object(callee_ident->name, call->args, fctx);
+                    return;
+                }
+                if (ctx.functions.count(callee_ident->name)) {
+                    for (auto &arg : call->args) emit_expr(arg.get(), fctx, arg->type);
+                    emit.line("call $" + callee_ident->name);
+                    return;
+                }
+            }
+            if (auto callee_mem = dynamic_cast<MemberExpr *>(call->callee.get())) {
+                if (callee_mem->member == "new") {
+                    auto ident = dynamic_cast<Identifier *>(callee_mem->object.get());
+                    if (ident) { emit_new_object(ident->name, call->args, fctx); return; }
+                }
+                if (callee_mem->member == "print" || callee_mem->member == "println") {
+                    emit_print_call(callee_mem->object.get(), call->args, callee_mem->member == "println", fctx);
+                    return;
+                }
+                auto obj_type = callee_mem->object->type;
+                if (obj_type->kind == Type::Kind::String && callee_mem->member == "length") {
+                    emit_expr(callee_mem->object.get(), fctx, obj_type);
+                    emit.line("call $string_length");
+                    return;
+                }
+                if (obj_type->kind == Type::Kind::Array) {
+                    emit_expr(callee_mem->object.get(), fctx, obj_type);
+                    if (callee_mem->member == "size" || callee_mem->member == "count") {
+                        emit.line("call $array_size");
+                        return;
+                    }
+                    if (callee_mem->member == "push") {
+                        emit_expr(call->args[0].get(), fctx, call->args[0]->type);
+                        if (call->args[0]->type->kind == Type::Kind::Real) {
+                            emit.line("call $array_push_f64");
+                        } else {
+                            if (call->args[0]->type->is_ref()) emit.line("i64.extend_i32_u");
+                            emit.line("call $array_push_i64");
+                        }
+                        return;
+                    }
+                    if (callee_mem->member == "pop") {
+                        if (call->type->kind == Type::Kind::Real) emit.line("call $array_pop_f64");
+                        else if (call->type->is_ref()) emit.line("call $array_pop_ptr");
+                        else emit.line("call $array_pop_i64");
+                        return;
+                    }
+                    if (callee_mem->member == "get") {
+                        emit_expr(call->args[0].get(), fctx, Type::make(Type::Kind::Int));
+                        if (call->type->kind == Type::Kind::Real) emit.line("call $array_get_f64");
+                        else if (call->type->is_ref()) emit.line("call $array_get_ptr");
+                        else emit.line("call $array_get_i64");
+                        return;
+                    }
+                    if (callee_mem->member == "set") {
+                        emit_expr(call->args[0].get(), fctx, Type::make(Type::Kind::Int));
+                        emit_expr(call->args[1].get(), fctx, call->args[1]->type);
+                        if (call->args[1]->type->kind == Type::Kind::Real) {
+                            emit.line("call $array_set_f64");
+                        } else {
+                            if (call->args[1]->type->is_ref()) emit.line("i64.extend_i32_u");
+                            emit.line("call $array_set_i64");
+                        }
+                        return;
+                    }
+                    if (callee_mem->member == "getString") {
+                        emit_expr(call->args[0].get(), fctx, Type::make(Type::Kind::Int));
+                        emit.line("call $array_get_ptr");
+                        return;
+                    }
+                    if (callee_mem->member == "getInt") {
+                        emit_expr(call->args[0].get(), fctx, Type::make(Type::Kind::Int));
+                        emit.line("call $array_get_i64");
+                        return;
+                    }
+                }
+                if (obj_type->kind == Type::Kind::Class) {
+                    emit_expr(callee_mem->object.get(), fctx, obj_type);
+                        emit.line("local.set " + fctx.temp_i32);
+                    auto &layout = ctx.layouts[obj_type->name];
+                    auto it = layout.methods.find(callee_mem->member);
+                    if (it != layout.methods.end()) {
+                        emit.line("local.get " + fctx.temp_i32);
+                        for (auto &arg : call->args) emit_expr(arg.get(), fctx, arg->type);
+                        emit_virtual_call(it->second, fctx);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    void emit_new_object(const std::string &class_name, const std::vector<std::unique_ptr<Expr>> &args, FunctionContext &fctx) {
+        auto &layout = ctx.layouts[class_name];
+        emit.line("i32.const " + std::to_string(layout.size));
+        emit.line("call $malloc");
+        emit.line("local.set " + fctx.temp_i32);
+        emit.line("local.get " + fctx.temp_i32);
+        emit.line("i32.const " + std::to_string(layout.class_id));
+        emit.line("i32.store");
+        emit.line("local.get " + fctx.temp_i32);
+        emit.line("i32.const 8");
+        emit.line("i32.add");
+        emit.line("i64.const 1");
+        emit.line("i64.store");
+        auto it = layout.methods.find("init");
+        if (it != layout.methods.end() && args.size() == it->second.def->params.size()) {
+            emit.line("local.get " + fctx.temp_i32);
+            for (auto &arg : args) emit_expr(arg.get(), fctx, arg->type);
+            emit.line("call $" + it->second.owner + "$init");
+            if (it->second.def->return_type->kind != Type::Kind::Void) emit.line("drop");
+        }
+        emit.line("local.get " + fctx.temp_i32);
+    }
+
+    void emit_virtual_call(const MethodInfo &info, FunctionContext &fctx) {
+        emit.line("local.get " + fctx.temp_i32);
+        emit.line("i32.load");
+        emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.mul");
+        emit.line("i32.const " + std::to_string(info.slot));
+        emit.line("i32.add");
+        emit.line("i32.const 4");
+        emit.line("i32.mul");
+        emit.line("global.get $vtable_base");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("call_indirect (type $t" + std::to_string(method_type_index.at(info.def)) + ")");
+    }
+
+    void emit_print_call(Expr *target, const std::vector<std::unique_ptr<Expr>> &args, bool newline, FunctionContext &fctx) {
+        auto literal = eval_string_literal(target, fctx);
+        if (literal) {
+            if (args.empty()) {
+                int offset = add_string_literal(*literal);
+                emit.line("i32.const " + std::to_string(offset));
+                emit.line("i32.const " + std::to_string(literal->size()));
+                emit.line("call $print_literal");
+                if (newline) emit.line("call $print_newline");
+                return;
+            }
+            parse_and_emit_format(*literal, args, newline, fctx);
+            return;
+        }
+        emit_expr(target, fctx, target->type);
+        if (target->type->kind == Type::Kind::String) {
+            emit.line("call $print_string");
+        } else if (target->type->kind == Type::Kind::Real) {
+            emit.line("call $print_real");
+        } else if (target->type->kind == Type::Kind::Bool) {
+            emit.line("call $print_bool");
+        } else if (target->type->kind == Type::Kind::Int || target->type->kind == Type::Kind::Char) {
+            emit.line("call $print_int");
+        } else if (target->type->is_ref()) {
+            emit.line("i64.extend_i32_u");
+            emit.line("call $print_int");
+        } else {
+            emit.line("call $print_int");
+        }
+        if (newline) emit.line("call $print_newline");
+    }
+
+    void parse_and_emit_format(const std::string &fmt, const std::vector<std::unique_ptr<Expr>> &args, bool newline, FunctionContext &fctx) {
+        size_t arg_index = 0;
+        std::string segment;
+        auto flush_segment = [&]() {
+            if (segment.empty()) return;
+            int offset = add_string_literal(segment);
+            emit.line("i32.const " + std::to_string(offset));
+            emit.line("i32.const " + std::to_string(segment.size()));
+            emit.line("call $print_literal");
+            segment.clear();
+        };
+
+        for (size_t i = 0; i < fmt.size(); ++i) {
+            if (fmt[i] == '%' && i + 1 < fmt.size()) {
+                char spec = fmt[i + 1];
+                bool supported = (spec == 'i' || spec == 'r' || spec == 's' || spec == 'b');
+                if (supported && arg_index < args.size()) {
+                    flush_segment();
+                    auto &arg = args[arg_index++];
+                    emit_expr(arg.get(), fctx, arg->type);
+                    if (spec == 'i') {
+                        if (arg->type->is_ref()) emit.line("i64.extend_i32_u");
+                        emit.line("call $print_int");
+                    }
+                    else if (spec == 'r') emit.line("call $print_real");
+                    else if (spec == 's') emit.line("call $print_string");
+                    else if (spec == 'b') emit.line("call $print_bool");
+                } else {
+                    segment.push_back('%');
+                    segment.push_back(spec);
+                }
+                i++;
+            } else {
+                segment.push_back(fmt[i]);
+            }
+        }
+        flush_segment();
+        if (newline) emit.line("call $print_newline");
+    }
+
+    void load_local(FunctionContext &fctx, const std::string &name) {
+        emit.line("local.get " + fctx.locals[name].name);
+    }
+
+    void store_local(FunctionContext &fctx, const std::string &name) {
+        emit.line("local.set " + fctx.locals[name].name);
+    }
+
+    void emit_load(const TypePtr &type) {
+        if (type->kind == Type::Kind::Real) emit.line("f64.load");
+        else if (type->kind == Type::Kind::String || type->kind == Type::Kind::Array || type->kind == Type::Kind::Class) emit.line("i32.load");
+        else emit.line("i64.load");
+    }
+
+    void emit_store(const TypePtr &type) {
+        if (type->kind == Type::Kind::Real) emit.line("f64.store");
+        else if (type->kind == Type::Kind::String || type->kind == Type::Kind::Array || type->kind == Type::Kind::Class) emit.line("i32.store");
+        else emit.line("i64.store");
+    }
+
+    void emit_module() {
+        emit.open("(module");
+        for (auto &type : type_defs) emit.line(type);
+        emit_runtime();
+        if (!function_table.empty()) {
+            emit.line("(table " + std::to_string(function_table.size()) + " funcref)");
+            std::string elem = "(elem (i32.const 0)";
+            for (auto &fn : function_table) elem += " " + fn;
+            elem += ")";
+            emit.line(elem);
+        }
+        for (auto &cls : ctx.classes) {
+            for (auto &method : cls.second.def->methods) emit_method(cls.first, method);
+        }
+        for (auto &fn : program.functions) emit_function(fn);
+        emit_data_segments();
+        emit_start();
+        emit.close(")");
+    }
+
+    void emit_start() {
+        FunctionDef *main_fn = nullptr;
+        for (auto &fn : program.functions) if (fn.name == "main") main_fn = &fn;
+        bool use_main = main_fn != nullptr;
+        bool use_class_start = false;
+        MethodInfo *start_method = nullptr;
+        MethodInfo *init_method = nullptr;
+        ClassLayout *start_layout = nullptr;
+        if (!use_main) {
+            auto it = ctx.layouts.find("Main");
+            if (it != ctx.layouts.end()) {
+                auto mit = it->second.methods.find("start");
+                if (mit != it->second.methods.end()) {
+                    use_class_start = true;
+                    start_method = &mit->second;
+                    start_layout = &it->second;
+                    auto init_it = it->second.methods.find("init");
+                    if (init_it != it->second.methods.end() && init_it->second.def->params.empty()) {
+                        init_method = &init_it->second;
+                    }
+                }
+            }
+        }
+        if (!use_main && !use_class_start) return;
+        emit.open("(func $_start");
+        if (use_class_start) {
+            emit.line("(local $t0 i32)");
+        }
+        emit.line("i32.const " + std::to_string(heap_base));
+        emit.line("global.set $heap");
+        emit.line("i32.const " + std::to_string(vtable_base));
+        emit.line("global.set $vtable_base");
+        emit.line("i32.const " + std::to_string(inner_base));
+        emit.line("global.set $inner_base");
+        emit.line("i32.const " + std::to_string(scratch_base));
+        emit.line("global.set $scratch");
+        if (use_main) {
+            for (auto &param : main_fn->params) {
+                if (param.type->kind == Type::Kind::Array) {
+                    emit.line("i64.const 0");
+                    emit.line("call $array_new");
+                } else if (param.type->kind == Type::Kind::Real) {
+                    emit.line("f64.const 0");
+                } else if (param.type->is_ref()) {
+                    emit.line("i32.const 0");
+                } else {
+                    emit.line("i64.const 0");
+                }
+            }
+            emit.line("call $main");
+            if (main_fn->return_type->kind != Type::Kind::Void) emit.line("drop");
+        } else if (use_class_start) {
+            emit.line("i32.const " + std::to_string(start_layout->size));
+            emit.line("call $malloc");
+            emit.line("local.set $t0");
+            emit.line("local.get $t0");
+            emit.line("i32.const " + std::to_string(start_layout->class_id));
+            emit.line("i32.store");
+            emit.line("local.get $t0");
+            emit.line("i32.const 8");
+            emit.line("i32.add");
+            emit.line("i64.const 1");
+            emit.line("i64.store");
+            if (init_method) {
+                emit.line("local.get $t0");
+                emit.line("call $" + init_method->owner + "$init");
+                if (init_method->def->return_type->kind != Type::Kind::Void) emit.line("drop");
+            }
+            emit.line("local.get $t0");
+            emit.line("call $" + start_method->owner + "$start");
+            if (start_method->def->return_type->kind != Type::Kind::Void) emit.line("drop");
+        }
+        emit.close(")");
+        emit.line("(export \"_start\" (func $_start))");
+    }
+};
+
+} // namespace
+
+CodegenResult generate_wat(Program &program) {
+    SemanticContext ctx;
+    for (auto &s : program.structs) {
+        ClassInfo info;
+        info.def = &s;
+        ctx.classes[s.name] = info;
+    }
+    for (auto &fn : program.functions) {
+        ctx.functions[fn.name] = {&fn};
+    }
+
+    Codegen codegen(program, ctx);
+    codegen.build_class_layouts();
+    TypeChecker checker(program, ctx);
+    for (auto &fn : program.functions) checker.check_function(fn);
+    for (auto &cls : program.structs) {
+        for (auto &method : cls.methods) checker.check_method(cls.name, method);
+    }
+    codegen.build_method_table();
+    codegen.emit_module();
+
+    CodegenResult result;
+    result.wat = codegen.emit.out.str();
+    return result;
+}
+
+} // namespace atom

@@ -1,0 +1,19 @@
+# Simple array assignment and access test
+
+Int main(String[] args):
+        Array arr = []
+        Int size = 5
+
+        Int j = 0
+        while (j < size):
+            arr.push((j + 1) * 10)
+            j = j + 1
+
+        "Args: %i".println(arr.size())
+
+        Int i = 0
+        while (i < size):
+            "%i) %i".println(i, arr[i])
+            i = i + 1
+
+        return 0

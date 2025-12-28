@@ -1,0 +1,50 @@
+# Complex data transformation with multiple passes
+
+Transformer:
+    Int pass1(Int n):
+        # Double if even, triple if odd
+        Int remainder = n % 2
+        if (remainder == 0):
+            return n * 2
+        return n * 3
+    
+    Int pass2(Int n):
+        # Add 10 if less than 50, subtract 10 otherwise
+        if (n < 50):
+            return n + 10
+        return n - 10
+    
+    Int pass3(Int n):
+        # Divide by 2 if divisible by 5, add 5 otherwise
+        Int remainder = n % 5
+        if (remainder == 0):
+            return n / 2
+        return n + 5
+    
+    Int transform(Int input):
+        Int result = input
+        result = this.pass1(result)
+        result = this.pass2(result)
+        result = this.pass3(result)
+        return result
+    
+    Int transformMultiple():
+        Int sum = 0
+        Int i = 1
+        
+        while (i <= 10):
+            Int transformed = this.transform(i)
+            "transform(%i) = %i".println(i, transformed)
+            sum = sum + transformed
+            i = i + 1
+        
+        return sum
+
+Int main():
+        "=== Multi-Pass Transform Test ===".println()
+        
+        Transformer t = Transformer.new()
+        Int total = t.transformMultiple()
+        "Total sum: %i".println(total)
+        
+        return 0

@@ -1,0 +1,6 @@
+topLeft ptr: 4193
+bottomRight ptr: 4201
+topLeft.x: 0
+topLeft.y: 10
+bottomRight.x: 5
+bottomRight.y: 0

@@ -1,0 +1,7 @@
+=== Deep Object Nesting Test ===
+
+Application initialized
+Config value from nested chain: 50
+
+Test nested object access:
+Fetched value: 50

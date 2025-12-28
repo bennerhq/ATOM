@@ -1,0 +1,12 @@
+Int main():
+        "=== String Compare ===".println()
+        
+        String a = "alpha"
+        String b = "alpha"
+        String c = "beta"
+        
+        "a == b: %b".println(a == b)
+        "a == c: %b".println(a == c)
+        "a != c: %b".println(a != c)
+        
+        return 0

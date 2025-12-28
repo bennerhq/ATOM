@@ -1,0 +1,29 @@
+Bank:
+    Int balance
+    
+    init(Int initial):
+        balance = initial
+    
+    deposit(Int amount):
+        balance = balance + amount
+    
+    withdraw(Int amount):
+        balance = balance - amount
+    
+    Int getBalance():
+        return balance
+
+Int main():
+        Bank acc1 = Bank.new()
+        acc1.init(1000)
+        
+        Bank acc2 = Bank.new()
+        acc2.init(500)
+        
+        acc1.deposit(200)
+        acc2.withdraw(100)
+        
+        Int total = acc1.getBalance() + acc2.getBalance()
+        
+        "return %i".println(total)
+        return 0

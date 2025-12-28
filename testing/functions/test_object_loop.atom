@@ -1,0 +1,27 @@
+# Multiple object creation in loops
+
+Factory:
+    Int createMany():
+        Int sum = 0
+        Int i = 0
+        while (i < 10):
+            Item item = Item.new()
+            item.value = i * 10
+            sum = sum + item.getValue()
+            i = i + 1
+        return sum
+
+Item:
+    Int value = 0
+    
+    Int getValue():
+        return this.value
+
+Int main():
+        "=== Object Creation Loop Test ===".println()
+        
+        Factory factory = Factory.new()
+        Int total = factory.createMany()
+        "Total from 10 items: %i".println(total)
+        
+        return 0

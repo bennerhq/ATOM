@@ -1,0 +1,30 @@
+# Exception handling benchmark (simulated with error codes)
+
+ExceptionBench:
+    Int n
+
+    init(Int n):
+        this.n = n
+
+    Int run():
+        Int i = 0
+        Int sum = 0
+        while (i < this.n):
+            if (i % 1000 == 0):
+                # Simulate exception
+                sum = sum + 1
+            else:
+                sum = sum + 2
+            i = i + 1
+        return sum
+
+Int main(String[] args):
+        Int n = 1000000
+        Int argc = args.count()
+        if (argc > 0):
+            n = args.getInt(0)
+        ExceptionBench bench = ExceptionBench.new(n)
+        Int result = bench.run()
+        "N: %i".println(n)
+        "Result: %i".println(result)
+        return 0

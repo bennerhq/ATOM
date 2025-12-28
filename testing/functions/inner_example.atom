@@ -1,0 +1,115 @@
+# Demonstration of Beta-style "inner" keyword
+# The inner keyword allows parent classes to define extension points
+# that subclasses can fill in - similar to the template method pattern
+
+# Base that defines a display template with an extension point
+Person:
+    Int name
+    Int age
+    
+    init(Int name, Int age):
+        this.name = name
+        this.age = age
+    
+    # Template method with "inner" extension point
+    Int display():
+        # Parent behavior (before)
+        Int start = 1
+        
+        # Extension point - subclasses can extend here
+        inner
+        
+        # Parent behavior (after)
+        Int end = 1
+        
+        return 0
+    
+    Int getName():
+        return this.name
+
+# Student extends Person and fills in the "inner" extension point
+Student:
+    Int studentId
+    Int gpa
+    
+    init(Int id, Int gpa):
+        this.studentId = id
+        this.gpa = gpa
+    
+    # When this display is called, it will execute:
+    # 1. Person's display start behavior
+    # 2. Student's additional behavior (at inner point)
+    # 3. Person's display end behavior
+    Int display():
+        # This is the extension at the "inner" point
+        Int studentInfo = this.studentId
+        inner
+        return 0
+    
+    Int getStudentId():
+        return this.studentId
+
+# Professor extends Person with different inner behavior
+Professor:
+    Int department
+    Int publications
+    
+    init(Int dept, Int pubs):
+        this.department = dept
+        this.publications = pubs
+    
+    Int display():
+        # Different extension at the "inner" point
+        Int profInfo = this.publications
+        inner
+        return profInfo
+    
+    Int getDepartment():
+        return this.department
+
+# Demonstrates layered extension with inner
+Shape:
+    Int x
+    Int y
+    
+    init(Int x, Int y):
+        this.x = x
+        this.y = y
+    
+    # Template for drawing with multiple extension points
+    Int draw():
+        # Setup phase
+        Int setup = 1
+        
+        # Extension point 1
+        inner
+        
+        # Cleanup phase
+        Int cleanup = 1
+        
+        return 0
+
+Circle:
+    Int radius
+    
+    init(Int r):
+        this.radius = r
+    
+    Int draw():
+        # Circle-specific drawing at inner point
+        Int area = this.radius * this.radius
+        inner
+        return area
+
+ColoredCircle:
+    Int color
+    
+    init(Int c):
+        this.color = c
+    
+    Int draw():
+        # Additional layer of behavior
+        Int colorSetup = this.color
+        inner
+        Int colorCleanup = 1
+        return 0
