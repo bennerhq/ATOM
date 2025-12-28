@@ -331,6 +331,8 @@ struct Codegen {
         std::string class_name;
         TypePtr return_type;
         std::unordered_map<std::string, Local> locals;
+        std::unordered_map<std::string, Local> field_alias;
+        std::vector<Local> extra_locals;
         std::unordered_map<std::string, std::string> const_strings;
         std::vector<TypePtr> local_types;
         int param_count = 0;
@@ -420,6 +422,155 @@ struct Codegen {
             "getStudentId", "getIndent"
         };
         return names;
+    }
+
+    void collect_field_reads(Expr *expr, FunctionContext &fctx, std::unordered_set<std::string> &reads, bool &has_this_calls) {
+        if (!expr) return;
+        if (auto ident = dynamic_cast<Identifier *>(expr)) {
+            if (!fctx.locals.count(ident->name) && ctx.layouts[fctx.class_name].field_offsets.count(ident->name)) {
+                reads.insert(ident->name);
+            }
+            return;
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(expr)) {
+            bool is_this = dynamic_cast<ThisExpr *>(mem->object.get()) != nullptr;
+            if (!is_this) {
+                if (auto obj_ident = dynamic_cast<Identifier *>(mem->object.get())) {
+                    is_this = obj_ident->name == "this";
+                }
+            }
+            if (is_this && ctx.layouts[fctx.class_name].field_offsets.count(mem->member)) {
+                reads.insert(mem->member);
+                return;
+            }
+            collect_field_reads(mem->object.get(), fctx, reads, has_this_calls);
+            return;
+        }
+        if (auto idx = dynamic_cast<IndexExpr *>(expr)) {
+            collect_field_reads(idx->array.get(), fctx, reads, has_this_calls);
+            collect_field_reads(idx->index.get(), fctx, reads, has_this_calls);
+            return;
+        }
+        if (auto call = dynamic_cast<CallExpr *>(expr)) {
+            if (auto mem = dynamic_cast<MemberExpr *>(call->callee.get())) {
+                Expr *base = mem->object.get();
+                while (auto nested = dynamic_cast<MemberExpr *>(base)) base = nested->object.get();
+                bool is_this = dynamic_cast<ThisExpr *>(base) != nullptr;
+                if (!is_this) {
+                    if (auto obj_ident = dynamic_cast<Identifier *>(base)) {
+                        is_this = obj_ident->name == "this";
+                    }
+                }
+                if (is_this) has_this_calls = true;
+            }
+            collect_field_reads(call->callee.get(), fctx, reads, has_this_calls);
+            for (auto &arg : call->args) collect_field_reads(arg.get(), fctx, reads, has_this_calls);
+            return;
+        }
+        if (auto bin = dynamic_cast<BinaryExpr *>(expr)) {
+            collect_field_reads(bin->left.get(), fctx, reads, has_this_calls);
+            collect_field_reads(bin->right.get(), fctx, reads, has_this_calls);
+            return;
+        }
+        if (auto unary = dynamic_cast<UnaryExpr *>(expr)) {
+            collect_field_reads(unary->expr.get(), fctx, reads, has_this_calls);
+            return;
+        }
+        if (auto arr = dynamic_cast<ArrayLiteral *>(expr)) {
+            for (auto &el : arr->elements) collect_field_reads(el.get(), fctx, reads, has_this_calls);
+            return;
+        }
+    }
+
+    bool collect_field_write_target(Expr *expr, FunctionContext &fctx, std::unordered_set<std::string> &writes) {
+        if (auto ident = dynamic_cast<Identifier *>(expr)) {
+            if (!fctx.locals.count(ident->name) && ctx.layouts[fctx.class_name].field_offsets.count(ident->name)) {
+                writes.insert(ident->name);
+                return true;
+            }
+        }
+        if (auto mem = dynamic_cast<MemberExpr *>(expr)) {
+            bool is_this = dynamic_cast<ThisExpr *>(mem->object.get()) != nullptr;
+            if (!is_this) {
+                if (auto obj_ident = dynamic_cast<Identifier *>(mem->object.get())) {
+                    is_this = obj_ident->name == "this";
+                }
+            }
+            if (is_this && ctx.layouts[fctx.class_name].field_offsets.count(mem->member)) {
+                writes.insert(mem->member);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void collect_field_accesses(const std::vector<std::unique_ptr<Statement>> &stmts, FunctionContext &fctx,
+                                std::unordered_set<std::string> &reads, std::unordered_set<std::string> &writes,
+                                bool &has_this_calls) {
+        for (const auto &stmt : stmts) {
+            if (auto var = dynamic_cast<VarDeclStmt *>(stmt.get())) {
+                if (var->init) collect_field_reads(var->init.get(), fctx, reads, has_this_calls);
+                continue;
+            }
+            if (auto asg = dynamic_cast<AssignStmt *>(stmt.get())) {
+                bool direct_field = collect_field_write_target(asg->target.get(), fctx, writes);
+                if (!direct_field) collect_field_reads(asg->target.get(), fctx, reads, has_this_calls);
+                collect_field_reads(asg->value.get(), fctx, reads, has_this_calls);
+                continue;
+            }
+            if (auto expr = dynamic_cast<ExprStmt *>(stmt.get())) {
+                collect_field_reads(expr->expr.get(), fctx, reads, has_this_calls);
+                continue;
+            }
+            if (auto ret = dynamic_cast<ReturnStmt *>(stmt.get())) {
+                if (ret->value) collect_field_reads(ret->value.get(), fctx, reads, has_this_calls);
+                continue;
+            }
+            if (auto iff = dynamic_cast<IfStmt *>(stmt.get())) {
+                collect_field_reads(iff->cond.get(), fctx, reads, has_this_calls);
+                collect_field_accesses(iff->then_body, fctx, reads, writes, has_this_calls);
+                collect_field_accesses(iff->else_body, fctx, reads, writes, has_this_calls);
+                continue;
+            }
+            if (auto wh = dynamic_cast<WhileStmt *>(stmt.get())) {
+                collect_field_reads(wh->cond.get(), fctx, reads, has_this_calls);
+                collect_field_accesses(wh->body, fctx, reads, writes, has_this_calls);
+                continue;
+            }
+        }
+    }
+
+    void setup_field_cache(FunctionContext &fctx, const std::vector<std::unique_ptr<Statement>> &body) {
+        if (fctx.class_name.empty()) return;
+        std::unordered_set<std::string> reads;
+        std::unordered_set<std::string> writes;
+        bool has_this_calls = false;
+        collect_field_accesses(body, fctx, reads, writes, has_this_calls);
+        if (has_this_calls) return;
+        if (reads.empty()) return;
+
+        const auto &fields = ctx.classes[fctx.class_name].def->fields;
+        for (const auto &field : fields) {
+            if (!reads.count(field.name)) continue;
+            if (writes.count(field.name)) continue;
+            Local local{field.type, "$f" + std::to_string(fctx.extra_locals.size())};
+            fctx.field_alias[field.name] = local;
+            fctx.extra_locals.push_back(local);
+        }
+    }
+
+    void emit_field_cache_init(FunctionContext &fctx) {
+        if (fctx.class_name.empty()) return;
+        for (const auto &kv : fctx.field_alias) {
+            const std::string &field = kv.first;
+            const Local &local = kv.second;
+            int offset = ctx.layouts[fctx.class_name].field_offsets[field];
+            emit.line("local.get $p0");
+            emit.line("i32.const " + std::to_string(offset));
+            emit.line("i32.add");
+            emit_load(local.type);
+            emit.line("local.set " + local.name);
+        }
     }
 
     std::string next_label(const std::string &base) {
@@ -1820,7 +1971,9 @@ struct Codegen {
         emit.open(header.str());
 
         collect_locals(method.body, fctx);
+        setup_field_cache(fctx, method.body);
         emit_local_decls(fctx);
+        emit_field_cache_init(fctx);
         emit_statements(method.body, fctx);
         if (method.return_type->kind == Type::Kind::Void) {
             emit.line("return");
@@ -1855,6 +2008,9 @@ struct Codegen {
     }
 
     void emit_local_decls(FunctionContext &fctx) {
+        for (const auto &local : fctx.extra_locals) {
+            emit.line("(local " + local.name + " " + wasm_type(local.type) + ")");
+        }
         for (size_t i = 0; i < fctx.local_types.size(); ++i) {
             emit.line("(local $l" + std::to_string(i) + " " + wasm_type(fctx.local_types[i]) + ")");
         }
@@ -2100,6 +2256,8 @@ struct Codegen {
         if (auto ident = dynamic_cast<Identifier *>(expr)) {
             if (fctx.locals.count(ident->name)) {
                 load_local(fctx, ident->name);
+            } else if (fctx.field_alias.count(ident->name)) {
+                emit.line("local.get " + fctx.field_alias[ident->name].name);
             } else if (!fctx.class_name.empty()) {
                 emit.line("local.get $p0");
                 int offset = ctx.layouts[fctx.class_name].field_offsets[ident->name];
@@ -2242,11 +2400,21 @@ struct Codegen {
             return;
         }
         if (auto mem = dynamic_cast<MemberExpr *>(expr)) {
-            emit_expr(mem->object.get(), fctx, mem->object->type);
-            int offset = ctx.layouts[mem->object->type->name].field_offsets[mem->member];
-            emit.line("i32.const " + std::to_string(offset));
-            emit.line("i32.add");
-            emit_load(mem->type);
+            bool is_this = dynamic_cast<ThisExpr *>(mem->object.get()) != nullptr;
+            if (!is_this) {
+                if (auto obj_ident = dynamic_cast<Identifier *>(mem->object.get())) {
+                    is_this = obj_ident->name == "this";
+                }
+            }
+            if (is_this && fctx.field_alias.count(mem->member)) {
+                emit.line("local.get " + fctx.field_alias[mem->member].name);
+            } else {
+                emit_expr(mem->object.get(), fctx, mem->object->type);
+                int offset = ctx.layouts[mem->object->type->name].field_offsets[mem->member];
+                emit.line("i32.const " + std::to_string(offset));
+                emit.line("i32.add");
+                emit_load(mem->type);
+            }
             return;
         }
         if (auto idx = dynamic_cast<IndexExpr *>(expr)) {
