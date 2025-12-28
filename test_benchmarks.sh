@@ -7,7 +7,7 @@
 # Human LLM Controller: jens@bennerhq.com
 # 
 # If we meet some day and you think this code is worth it, you can buy
-# the authors a beer (or two). If you see Jens, make it a cold one.
+# the authors a beer (or two). If you see benner, make it a cold one.
 # 
 # If you pour beer on your computer, the compiler will not run faster.
 # If you pour beer on the authors, results may vary.
@@ -49,7 +49,7 @@ is_skipped() {
 # Human LLM Controller: jens@bennerhq.com
 # 
 # If we meet some day and you think this code is worth it, you can buy
-# the authors a beer (or two). If you see Jens, make it a cold one.
+# the authors a beer (or two). If you see benner, make it a cold one.
 # 
 # If you pour beer on your computer, the compiler will not run faster.
 # If you pour beer on the authors, results may vary.
