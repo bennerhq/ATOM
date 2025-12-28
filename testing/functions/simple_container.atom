@@ -12,13 +12,11 @@ Container:
     init(Int x, Int y):
         "Creating Point".println()
         this.p = Point.new(x, y)
-        "Point created at: %i".println(this.p)
         "Point.x = %i".println(this.p.x)
         "Point.y = %i".println(this.p.y)
 
 Int main():
         Container c = Container.new(10, 20)
-        "Container.p ptr: %i".println(c.p)
         "Container.p.x: %i".println(c.p.x)
         "Container.p.y: %i".println(c.p.y)
         return 0

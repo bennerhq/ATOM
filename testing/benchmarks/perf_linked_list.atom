@@ -34,6 +34,6 @@ Int main(String[] args):
             n = args.getInt(0)
         LinkedListBench bench = LinkedListBench.new(n)
         Int result = bench.run()
-        "N: %i".println(n);
-        "Sum: %i".println(sum)
+        "N: %i".println(n)
+        "Sum: %i".println(result)
         return 0

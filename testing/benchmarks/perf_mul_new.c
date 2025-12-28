@@ -29,5 +29,6 @@ int main(int argc, char** argv) {
     printf("Iterations: %d\n", iterations);
     printf("Wrap: %d\n", wrap);
     printf("Checksum: %d\n", checksum);
+
     return 0;
 }

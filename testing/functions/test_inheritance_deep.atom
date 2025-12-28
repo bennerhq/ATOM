@@ -1,7 +1,7 @@
 # Test complex inheritance with method overrides
 
 Animal:
-    virtualInt speak():
+    Int speak():
         return 0
 
 Dog: Animal:

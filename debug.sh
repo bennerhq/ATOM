@@ -33,6 +33,7 @@ ATOMC=${ATOMC:-./atomc}
 WASMTIME=${WASMTIME:-wasmtime}
 WASMOUT="output.wasm"
 SRC_FILE="$1"
+shift
 
 if [ ! -f "$SRC_FILE" ]; then
     echo -e "${RED}Error:${NC} Source file '$SRC_FILE' does not exist."

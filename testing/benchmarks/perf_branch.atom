@@ -26,19 +26,19 @@ BranchBench:
         return acc
 
 Int main(String[] args):
-        Int iterations = 100000000
-        Int wrap = 1000000
-        Int argc = args.count()
-        if (argc > 0):
-            iterations = args.getInt(0)
-        if (argc > 1):
-            wrap = args.getInt(1)
- 
-        BranchBench bench = BranchBench.new(iterations, wrap)
-        Int checksum = bench.run()
+    Int iterations = 100000000
+    Int wrap = 1000000
+    Int argc = args.count()
+    if (argc > 0):
+        iterations = args.getInt(0)
+    if (argc > 1):
+        wrap = args.getInt(1)
 
-        "Iterations: %i".println(iterations)
-        "Wrap: %i".println(wrap)
-        "Checksum: %i".println(checksum)
+    BranchBench bench = BranchBench.new(iterations, wrap)
+    Int checksum = bench.run()
 
-        return 0
+    "Iterations: %i".println(iterations)
+    "Wrap: %i".println(wrap)
+    "Checksum: %i".println(checksum)
+
+    return 0

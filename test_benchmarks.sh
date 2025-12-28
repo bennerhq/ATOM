@@ -14,6 +14,48 @@
 
 # -----------------------------------------------------------------------------
 # Performance benchmarking for ATOM benchmarks under testing/benchmarks
+
+# Skiplist logic (moved below shebang and license)
+SKIPLIST_FILE="./testing/skiplist.txt"
+SKIPLIST=()
+if [[ -f "$SKIPLIST_FILE" ]]; then
+  while IFS= read -r line; do
+    # Remove leading/trailing whitespace
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    # Ignore comments and empty lines
+    [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+    SKIPLIST+=("$line")
+  done < "$SKIPLIST_FILE"
+fi
+
+# Function to check if a file is in the skip list
+is_skipped() {
+  local f="$1"
+  # Remove leading/trailing whitespace from file path
+  f="${f#"${f%%[![:space:]]*}"}"
+  f="${f%"${f##*[![:space:]]}"}"
+  for skip in "${SKIPLIST[@]}"; do
+    [[ "$f" == "$skip" ]] && return 0
+  done
+  return 1
+}
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# SPDX-License-Identifier: OBL-1.0
+# Open Source Beer License (with Extra Bubbles)
+# 
+# Licensor: Atom Compiler Contributors
+# Human LLM Controller: jens@bennerhq.com
+# 
+# If we meet some day and you think this code is worth it, you can buy
+# the authors a beer (or two). If you see Jens, make it a cold one.
+# 
+# If you pour beer on your computer, the compiler will not run faster.
+# If you pour beer on the authors, results may vary.
+
+# -----------------------------------------------------------------------------
+# Performance benchmarking for ATOM benchmarks under testing/benchmarks
 # - Discovers .atom files dynamically
 # - Compiles to WAT/WASM
 # - Runs with wasmtime and measures wall time using /usr/bin/time -p
@@ -168,7 +210,13 @@ if [[ $QUIET -eq 0 ]]; then
   printf '%*s\n' 70 '' | tr ' ' '─'
 fi
 
+
 for file in "${ATOM_FILES[@]}"; do
+  # Skip files in skiplist
+  if is_skipped "$file"; then
+   [[ $QUIET -eq 0 ]] && echo -e "${YELLOW}$file (in skiplist.txt)${NC}"
+    continue
+  fi
   base=$(basename "$file" .atom)
   if [[ -n "$FILTER" ]] && [[ "$base" != *"$FILTER"* ]]; then
     continue

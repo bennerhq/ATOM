@@ -24,17 +24,18 @@ MulBench:
         return acc
 
 Int main(String[] args):
-        Int iterations = 100000000
-        Int wrap = 1000000
-        Int argc = args.count()
-        if (argc > 0):
-            iterations = args.getInt(0)
-        if (argc > 1):
-            wrap = args.getInt(1)
-        MulBench bench = MulBench.new()
-        bench.init(iterations, wrap)
-        Int checksum = bench.run()
-        "Iterations: %i".println(iterations)
-        "Wrap: %i".println(wrap)
-        "Checksum: %i".println(checksum)
-        return 0
+    Int iterations = 100000000
+    Int wrap = 1000000
+    Int argc = args.count()
+    if (argc > 0):
+        iterations = args.getInt(0)
+    if (argc > 1):
+        wrap = args.getInt(1)
+    MulBench bench = MulBench.new()
+    bench.init(iterations, wrap)
+    Int checksum = bench.run()
+    "Iterations: %i".println(iterations)
+    "Wrap: %i".println(wrap)
+    "Checksum: %i".println(checksum)
+
+    return 0

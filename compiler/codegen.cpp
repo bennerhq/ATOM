@@ -596,10 +596,9 @@ struct Codegen {
                 for (int slot = 0; slot < max_slots; ++slot) {
                     size_t current_func_index = static_cast<size_t>(current_id) * max_slots_size + static_cast<size_t>(slot);
                     int current_func = vtable[current_func_index];
-                    int next_func = 0;
-                    for (int i = current_pos - 1; i >= 0; --i) {
-                        size_t chain_index = static_cast<size_t>(i);
-                        int cid = ctx.layouts[chain[chain_index]].class_id;
+                    int next_func = -1;
+                    for (size_t i = static_cast<size_t>(current_pos + 1); i < chain.size(); ++i) {
+                        int cid = ctx.layouts[chain[i]].class_id;
                         size_t func_index = static_cast<size_t>(cid) * max_slots_size + static_cast<size_t>(slot);
                         int func = vtable[func_index];
                         if (func != current_func) {
@@ -662,6 +661,10 @@ struct Codegen {
 
     void emit_runtime() {
         emit.line("(import \"wasi_snapshot_preview1\" \"fd_write\" (func $fd_write (param i32 i32 i32 i32) (result i32)))");
+        emit.line("(import \"wasi_snapshot_preview1\" \"fd_read\" (func $fd_read (param i32 i32 i32 i32) (result i32)))");
+        emit.line("(import \"wasi_snapshot_preview1\" \"fd_fdstat_get\" (func $fd_fdstat_get (param i32 i32) (result i32)))");
+        emit.line("(import \"wasi_snapshot_preview1\" \"args_sizes_get\" (func $args_sizes_get (param i32 i32) (result i32)))");
+        emit.line("(import \"wasi_snapshot_preview1\" \"args_get\" (func $args_get (param i32 i32) (result i32)))");
         emit.line("(memory (export \"memory\") 1)");
         emit.line("(global $heap (mut i32) (i32.const 0))");
         emit.line("(global $vtable_base (mut i32) (i32.const 0))");
@@ -738,6 +741,166 @@ struct Codegen {
         emit.close("end");
         emit.close("end");
         emit.close(")");
+
+        emit.open("(func $strlen (param $ptr i32) (result i32)");
+        emit.line("(local $len i32)");
+        emit.open("block $done");
+        emit.open("loop $loop");
+        emit.line("local.get $ptr");
+        emit.line("local.get $len");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("i32.eqz");
+        emit.line("br_if $done");
+        emit.line("local.get $len");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $len");
+        emit.line("br $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $len");
+        emit.close(")");
+
+        {
+            int base = emit.indent;
+            emit.indent = 0;
+            emit.out
+                << "  (func $split_ws (param $ptr i32) (param $len i32) (result i32)\n"
+                << "    (local $i i32)\n"
+                << "    (local $count i32)\n"
+                << "    (local $in_token i32)\n"
+                << "    (local $start i32)\n"
+                << "    (local $arr i32)\n"
+                << "    (local $idx i32)\n"
+                << "    (local $tok_len i32)\n"
+                << "    (local $str i32)\n"
+                << "    block $count_done\n"
+                << "      loop $count_loop\n"
+                << "        local.get $i\n"
+                << "        local.get $len\n"
+                << "        i32.ge_u\n"
+                << "        br_if $count_done\n"
+                << "        local.get $ptr\n"
+                << "        local.get $i\n"
+                << "        i32.add\n"
+                << "        i32.load8_u\n"
+                << "        i32.const 32\n"
+                << "        i32.gt_u\n"
+                << "        if\n"
+                << "          local.get $in_token\n"
+                << "          i32.eqz\n"
+                << "          if\n"
+                << "            local.get $count\n"
+                << "            i32.const 1\n"
+                << "            i32.add\n"
+                << "            local.set $count\n"
+                << "            i32.const 1\n"
+                << "            local.set $in_token\n"
+                << "          end\n"
+                << "        else\n"
+                << "          i32.const 0\n"
+                << "          local.set $in_token\n"
+                << "        end\n"
+                << "        local.get $i\n"
+                << "        i32.const 1\n"
+                << "        i32.add\n"
+                << "        local.set $i\n"
+                << "        br $count_loop\n"
+                << "      end\n"
+                << "    end\n"
+                << "    local.get $count\n"
+                << "    i64.extend_i32_u\n"
+                << "    call $array_new\n"
+                << "    local.set $arr\n"
+                << "    i32.const 0\n"
+                << "    local.set $i\n"
+                << "    i32.const 0\n"
+                << "    local.set $idx\n"
+                << "    i32.const 0\n"
+                << "    local.set $in_token\n"
+                << "    block $fill_done\n"
+                << "      loop $fill_loop\n"
+                << "        local.get $i\n"
+                << "        local.get $len\n"
+                << "        i32.ge_u\n"
+                << "        br_if $fill_done\n"
+                << "        local.get $ptr\n"
+                << "        local.get $i\n"
+                << "        i32.add\n"
+                << "        i32.load8_u\n"
+                << "        i32.const 32\n"
+                << "        i32.gt_u\n"
+                << "        if\n"
+                << "          local.get $in_token\n"
+                << "          i32.eqz\n"
+                << "          if\n"
+                << "            local.get $i\n"
+                << "            local.set $start\n"
+                << "            i32.const 1\n"
+                << "            local.set $in_token\n"
+                << "          end\n"
+                << "        else\n"
+                << "          local.get $in_token\n"
+                << "          i32.eqz\n"
+                << "          if\n"
+                << "          else\n"
+                << "            local.get $i\n"
+                << "            local.get $start\n"
+                << "            i32.sub\n"
+                << "            local.set $tok_len\n"
+                << "            local.get $ptr\n"
+                << "            local.get $start\n"
+                << "            i32.add\n"
+                << "            local.get $tok_len\n"
+                << "            call $string_new\n"
+                << "            local.set $str\n"
+                << "            local.get $arr\n"
+                << "            local.get $idx\n"
+                << "            i64.extend_i32_u\n"
+                << "            local.get $str\n"
+                << "            i64.extend_i32_u\n"
+                << "            call $array_set_i64\n"
+                << "            local.get $idx\n"
+                << "            i32.const 1\n"
+                << "            i32.add\n"
+                << "            local.set $idx\n"
+                << "            i32.const 0\n"
+                << "            local.set $in_token\n"
+                << "          end\n"
+                << "        end\n"
+                << "        local.get $i\n"
+                << "        i32.const 1\n"
+                << "        i32.add\n"
+                << "        local.set $i\n"
+                << "        br $fill_loop\n"
+                << "      end\n"
+                << "    end\n"
+                << "    local.get $in_token\n"
+                << "    i32.eqz\n"
+                << "    if\n"
+                << "    else\n"
+                << "      local.get $len\n"
+                << "      local.get $start\n"
+                << "      i32.sub\n"
+                << "      local.set $tok_len\n"
+                << "      local.get $ptr\n"
+                << "      local.get $start\n"
+                << "      i32.add\n"
+                << "      local.get $tok_len\n"
+                << "      call $string_new\n"
+                << "      local.set $str\n"
+                << "      local.get $arr\n"
+                << "      local.get $idx\n"
+                << "      i64.extend_i32_u\n"
+                << "      local.get $str\n"
+                << "      i64.extend_i32_u\n"
+                << "      call $array_set_i64\n"
+                << "    end\n"
+                << "    local.get $arr\n"
+                << "  )\n";
+            emit.indent = base;
+        }
 
         emit.open("(func $write_buf (param $ptr i32) (param $len i32)");
         emit.line("global.get $scratch");
@@ -956,6 +1119,89 @@ struct Codegen {
         emit.line("i32.const 16");
         emit.line("i32.add");
         emit.line("i64.load");
+        emit.close(")");
+
+        emit.open("(func $string_to_int (param $ptr i32) (result i64)");
+        emit.line("(local $len i32)");
+        emit.line("(local $idx i32)");
+        emit.line("(local $data i32)");
+        emit.line("(local $sign i64)");
+        emit.line("(local $acc i64)");
+        emit.line("(local $ch i32)");
+        emit.line("local.get $ptr");
+        emit.line("i32.eqz");
+        emit.open("if");
+        emit.line("i64.const 0");
+        emit.line("return");
+        emit.close("end");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 16");
+        emit.line("i32.add");
+        emit.line("i64.load");
+        emit.line("i32.wrap_i64");
+        emit.line("local.set $len");
+        emit.line("local.get $ptr");
+        emit.line("i32.const 24");
+        emit.line("i32.add");
+        emit.line("i32.load");
+        emit.line("local.set $data");
+        emit.line("i64.const 1");
+        emit.line("local.set $sign");
+        emit.open("block $done");
+        emit.open("loop $loop");
+        emit.line("local.get $idx");
+        emit.line("local.get $len");
+        emit.line("i32.ge_u");
+        emit.line("br_if $done");
+        emit.line("local.get $data");
+        emit.line("local.get $idx");
+        emit.line("i32.add");
+        emit.line("i32.load8_u");
+        emit.line("local.set $ch");
+        emit.line("local.get $ch");
+        emit.line("i32.const 45");
+        emit.line("i32.eq");
+        emit.open("if");
+        emit.line("local.get $idx");
+        emit.line("i32.const 0");
+        emit.line("i32.eq");
+        emit.open("if");
+        emit.line("i64.const -1");
+        emit.line("local.set $sign");
+        emit.line("local.get $idx");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $idx");
+        emit.line("br $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $ch");
+        emit.line("i32.const 48");
+        emit.line("i32.lt_u");
+        emit.line("local.get $ch");
+        emit.line("i32.const 57");
+        emit.line("i32.gt_u");
+        emit.line("i32.or");
+        emit.line("br_if $done");
+        emit.line("local.get $acc");
+        emit.line("i64.const 10");
+        emit.line("i64.mul");
+        emit.line("local.get $ch");
+        emit.line("i32.const 48");
+        emit.line("i32.sub");
+        emit.line("i64.extend_i32_u");
+        emit.line("i64.add");
+        emit.line("local.set $acc");
+        emit.line("local.get $idx");
+        emit.line("i32.const 1");
+        emit.line("i32.add");
+        emit.line("local.set $idx");
+        emit.line("br $loop");
+        emit.close("end");
+        emit.close("end");
+        emit.line("local.get $acc");
+        emit.line("local.get $sign");
+        emit.line("i64.mul");
         emit.close(")");
 
         emit.open("(func $string_concat (param $a i32) (param $b i32) (result i32)");
@@ -1561,21 +1807,44 @@ struct Codegen {
             return;
         }
         if (auto iff = dynamic_cast<IfStmt *>(stmt)) {
+            auto before_consts = fctx.const_strings;
             emit_expr(iff->cond.get(), fctx, Type::make(Type::Kind::Bool));
             emit.line("i64.const 0");
             emit.line("i64.ne");
             emit.open("if");
+            fctx.const_strings = before_consts;
             emit_statements(iff->then_body, fctx);
+            auto then_consts = fctx.const_strings;
             if (!iff->else_body.empty()) {
                 emit.open("else");
+                fctx.const_strings = before_consts;
                 emit_statements(iff->else_body, fctx);
                 emit.close("end");
             } else {
                 emit.close("end");
             }
+            if (!iff->else_body.empty()) {
+                std::unordered_map<std::string, std::string> merged;
+                for (auto &kv : then_consts) {
+                    auto it = fctx.const_strings.find(kv.first);
+                    if (it != fctx.const_strings.end() && it->second == kv.second) {
+                        merged[kv.first] = kv.second;
+                    }
+                }
+                fctx.const_strings = std::move(merged);
+            } else {
+                fctx.const_strings = std::move(before_consts);
+                for (auto &kv : then_consts) {
+                    auto it = fctx.const_strings.find(kv.first);
+                    if (it == fctx.const_strings.end() || it->second != kv.second) {
+                        fctx.const_strings.erase(kv.first);
+                    }
+                }
+            }
             return;
         }
         if (auto wh = dynamic_cast<WhileStmt *>(stmt)) {
+            auto before_consts = fctx.const_strings;
             std::string loop = next_label("loop");
             std::string block = next_label("block");
             emit.open("block $" + block);
@@ -1583,7 +1852,16 @@ struct Codegen {
             emit_expr(wh->cond.get(), fctx, Type::make(Type::Kind::Bool));
             emit.line("i64.eqz");
             emit.line("br_if $" + block);
+            fctx.const_strings = before_consts;
             emit_statements(wh->body, fctx);
+            auto body_consts = fctx.const_strings;
+            fctx.const_strings = std::move(before_consts);
+            for (auto &kv : body_consts) {
+                auto it = fctx.const_strings.find(kv.first);
+                if (it == fctx.const_strings.end() || it->second != kv.second) {
+                    fctx.const_strings.erase(kv.first);
+                }
+            }
             emit.line("br $" + loop);
             emit.close("end");
             emit.close("end");
@@ -1603,15 +1881,15 @@ struct Codegen {
         int slot = it->second.slot;
         emit.line("local.get $p0");
         emit.line("i32.load");
+        emit.line("local.set " + fctx.temp_i32);
         emit.line("i32.const " + std::to_string(layout.class_id));
-        emit.line("i32.const " + std::to_string(max_slots));
-        emit.line("i32.mul");
-        emit.line("i32.add");
-        emit.line("i32.const " + std::to_string(slot));
-        emit.line("i32.add");
         emit.line("i32.const " + std::to_string(static_cast<int>(ctx.layouts.size())));
         emit.line("i32.mul");
+        emit.line("local.get " + fctx.temp_i32);
+        emit.line("i32.add");
         emit.line("i32.const " + std::to_string(max_slots));
+        emit.line("i32.mul");
+        emit.line("i32.const " + std::to_string(slot));
         emit.line("i32.add");
         emit.line("i32.const 4");
         emit.line("i32.mul");
@@ -1934,7 +2212,12 @@ struct Codegen {
                     }
                     if (callee_mem->member == "getInt") {
                         emit_expr(call->args[0].get(), fctx, Type::make(Type::Kind::Int));
-                        emit.line("call $array_get_i64");
+                        if (obj_type->elem && obj_type->elem->kind == Type::Kind::String) {
+                            emit.line("call $array_get_ptr");
+                            emit.line("call $string_to_int");
+                        } else {
+                            emit.line("call $array_get_i64");
+                        }
                         return;
                     }
                 }
@@ -2128,9 +2411,28 @@ struct Codegen {
             }
         }
         if (!use_main && !use_class_start) return;
+        bool need_args = false;
+        if (use_main) {
+            for (auto &param : main_fn->params) {
+                if (param.type->kind == Type::Kind::Array && param.type->elem && param.type->elem->kind == Type::Kind::String) {
+                    need_args = true;
+                    break;
+                }
+            }
+        }
         emit.open("(func $_start");
-        if (use_class_start) {
+        if (use_class_start || need_args) {
             emit.line("(local $t0 i32)");
+            emit.line("(local $t1 i32)");
+            emit.line("(local $t2 i32)");
+            emit.line("(local $t3 i32)");
+            emit.line("(local $t4 i32)");
+            emit.line("(local $t5 i32)");
+            emit.line("(local $t6 i32)");
+            emit.line("(local $t7 i32)");
+            emit.line("(local $t8 i32)");
+            emit.line("(local $t9 i32)");
+            emit.line("(local $t10 i32)");
         }
         emit.line("i32.const " + std::to_string(heap_base));
         emit.line("global.set $heap");
@@ -2141,8 +2443,157 @@ struct Codegen {
         emit.line("i32.const " + std::to_string(scratch_base));
         emit.line("global.set $scratch");
         if (use_main) {
+            if (need_args) {
+                auto emit_args_from_argv = [&]() {
+                    emit.out
+                        << "          local.get $t0\n"
+                        << "          local.get $t0\n"
+                        << "          i32.const 4\n"
+                        << "          i32.add\n"
+                        << "          call $args_sizes_get\n"
+                        << "          drop\n"
+                        << "          local.get $t0\n"
+                        << "          i32.load\n"
+                        << "          local.set $t1\n"
+                        << "          local.get $t0\n"
+                        << "          i32.const 4\n"
+                        << "          i32.add\n"
+                        << "          i32.load\n"
+                        << "          local.set $t2\n"
+                        << "          local.get $t1\n"
+                        << "          i32.const 1\n"
+                        << "          i32.le_u\n"
+                        << "          if\n"
+                        << "            i64.const 0\n"
+                        << "            call $array_new\n"
+                        << "            local.set $t6\n"
+                        << "          else\n"
+                        << "            local.get $t1\n"
+                        << "            i32.const 4\n"
+                        << "            i32.mul\n"
+                        << "            local.set $t3\n"
+                        << "            local.get $t3\n"
+                        << "            local.get $t2\n"
+                        << "            i32.add\n"
+                        << "            call $malloc\n"
+                        << "            local.set $t4\n"
+                        << "            local.get $t4\n"
+                        << "            local.set $t5\n"
+                        << "            local.get $t4\n"
+                        << "            local.get $t3\n"
+                        << "            i32.add\n"
+                        << "            local.set $t8\n"
+                        << "            local.get $t5\n"
+                        << "            local.get $t8\n"
+                        << "            call $args_get\n"
+                        << "            drop\n"
+                        << "            local.get $t1\n"
+                        << "            i32.const 1\n"
+                        << "            i32.sub\n"
+                        << "            local.set $t7\n"
+                        << "            local.get $t7\n"
+                        << "            i64.extend_i32_u\n"
+                        << "            call $array_new\n"
+                        << "            local.set $t6\n"
+                        << "            i32.const 1\n"
+                        << "            local.set $t8\n"
+                        << "            i32.const 0\n"
+                        << "            local.set $t9\n"
+                        << "            block $args_done\n"
+                        << "              loop $args_loop\n"
+                        << "                local.get $t8\n"
+                        << "                local.get $t1\n"
+                        << "                i32.ge_u\n"
+                        << "                br_if $args_done\n"
+                        << "                local.get $t5\n"
+                        << "                local.get $t8\n"
+                        << "                i32.const 4\n"
+                        << "                i32.mul\n"
+                        << "                i32.add\n"
+                        << "                i32.load\n"
+                        << "                local.set $t2\n"
+                        << "                local.get $t2\n"
+                        << "                call $strlen\n"
+                        << "                local.set $t10\n"
+                        << "                local.get $t2\n"
+                        << "                local.get $t10\n"
+                        << "                call $string_new\n"
+                        << "                local.set $t3\n"
+                        << "                local.get $t6\n"
+                        << "                local.get $t9\n"
+                        << "                i64.extend_i32_u\n"
+                        << "                local.get $t3\n"
+                        << "                i64.extend_i32_u\n"
+                        << "                call $array_set_i64\n"
+                        << "                local.get $t8\n"
+                        << "                i32.const 1\n"
+                        << "                i32.add\n"
+                        << "                local.set $t8\n"
+                        << "                local.get $t9\n"
+                        << "                i32.const 1\n"
+                        << "                i32.add\n"
+                        << "                local.set $t9\n"
+                        << "                br $args_loop\n"
+                        << "              end\n"
+                        << "            end\n"
+                        << "          end\n";
+                };
+
+                emit.line("i32.const 0");
+                emit.line("local.set $t6");
+                emit.line("global.get $scratch");
+                emit.line("local.set $t0");
+                emit.line("i32.const 0");
+                emit.line("local.get $t0");
+                emit.line("call $fd_fdstat_get");
+                emit.line("drop");
+                emit.line("local.get $t0");
+                emit.line("i32.load8_u");
+                emit.line("i32.const 2");
+                emit.line("i32.eq");
+                emit.open("if");
+                emit_args_from_argv();
+                emit.open("else");
+                emit.line("i32.const 8192");
+                emit.line("call $malloc");
+                emit.line("local.set $t4");
+                emit.line("local.get $t0");
+                emit.line("local.get $t4");
+                emit.line("i32.store");
+                emit.line("local.get $t0");
+                emit.line("i32.const 4");
+                emit.line("i32.add");
+                emit.line("i32.const 8192");
+                emit.line("i32.store");
+                emit.line("i32.const 0");
+                emit.line("local.get $t0");
+                emit.line("i32.const 1");
+                emit.line("local.get $t0");
+                emit.line("i32.const 8");
+                emit.line("i32.add");
+                emit.line("call $fd_read");
+                emit.line("drop");
+                emit.line("local.get $t0");
+                emit.line("i32.const 8");
+                emit.line("i32.add");
+                emit.line("i32.load");
+                emit.line("local.set $t1");
+                emit.line("local.get $t1");
+                emit.line("i32.eqz");
+                emit.open("if");
+                emit_args_from_argv();
+                emit.open("else");
+                emit.line("local.get $t4");
+                emit.line("local.get $t1");
+                emit.line("call $split_ws");
+                emit.line("local.set $t6");
+                emit.close("end");
+                emit.close("end");
+            }
             for (auto &param : main_fn->params) {
-                if (param.type->kind == Type::Kind::Array) {
+                if (param.type->kind == Type::Kind::Array && param.type->elem && param.type->elem->kind == Type::Kind::String) {
+                    emit.line("local.get $t6");
+                } else if (param.type->kind == Type::Kind::Array) {
                     emit.line("i64.const 0");
                     emit.line("call $array_new");
                 } else if (param.type->kind == Type::Kind::Real) {

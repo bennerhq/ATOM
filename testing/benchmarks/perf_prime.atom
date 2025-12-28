@@ -18,13 +18,13 @@ Prime:
         return true
 
 Int main():
-        Int LIMIT = 10000000
-        Int count = 0
-        Prime p = Prime.new()
-        Int n = 2
-        while (n <= LIMIT):
-            if (p.isPrime(n)):
-                count = count + 1
-            n = n + 1
-        "primes up to %i: %i".println(LIMIT, count)
-        return 0
+    Int LIMIT = 10000000
+    Int count = 0
+    Prime p = Prime.new()
+    Int n = 2
+    while (n <= LIMIT):
+        if (p.isPrime(n)):
+            count = count + 1
+        n = n + 1
+    "primes up to %i: %i".println(LIMIT, count)
+    return 0

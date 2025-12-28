@@ -1,5 +1,14 @@
 # Loop-heavy benchmark used for runtime speed checks
 
+Int toInt32(Int v):
+    Int mod = 4294967296
+    v = v % mod
+    if (v < 0):
+        v = v + mod
+    if (v > 2147483647):
+        v = v - mod
+    return v
+
 Bench:
     Int wrap
     Int iterations
@@ -12,18 +21,18 @@ Bench:
         Int i = 0
         Int acc = 0
         while (i < this.iterations):
-            acc = acc + i
+            acc = toInt32(acc + i)
             if (acc > this.wrap):
-                acc = acc - this.wrap
+                acc = toInt32(acc - this.wrap)
             i = i + 1
         return acc
 
 Int main():
-        Int iterations = 100000000
-        Int wrap = 1000000
-        Bench bench = Bench.new(iterations, wrap)
-        Int checksum = bench.run()
-        "Iterations: %i".println(iterations)
-        "Wrap: %i".println(wrap)
-        "Checksum: %i".println(checksum)
-        return 0
+    Int iterations = 100000000
+    Int wrap = 1000000
+    Bench bench = Bench.new(iterations, wrap)
+    Int checksum = bench.run()
+    "Iterations: %i".println(iterations)
+    "Wrap: %i".println(wrap)
+    "Checksum: %i".println(checksum)
+    return 0

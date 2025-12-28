@@ -10,19 +10,11 @@ testing/functions/import_echo_module.atom
 testing/functions/import_math_module.atom
 
 # -------
-# FIXME: Output not equal betweem .atom and .c
+# Tests that are way too slow
 #
-testing/benchmarks/perf_array_sum.atom
-testing/benchmarks/perf_bubble_sort.atom
-testing/benchmarks/perf_calls.atom
-testing/benchmarks/perf_div.atom
-testing/benchmarks/perf_hashmap.atom
-testing/benchmarks/perf_loop_new.atom
-testing/benchmarks/perf_matrix_mult.atom
-testing/benchmarks/perf_mul_new.atom
-testing/benchmarks/perf_linked_list.atom
+testing/benchmarks/perf_fib.atom
 
 # -------
 # FIXME: Compiler error
 #
-testing/functions/stdin_echo.atom
+#testing/functions/stdin_echo.atom

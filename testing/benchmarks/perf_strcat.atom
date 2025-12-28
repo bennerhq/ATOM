@@ -15,12 +15,12 @@ StrCatBench:
         return s
 
 Int main(String[] args):
-        Int n = 100000
-        Int argc = args.count()
-        if (argc > 0):
-            n = args.getInt(0)
-        StrCatBench bench = StrCatBench.new(n)
-        String result = bench.run()
-        "N: %i".println(n)
-        "Length: %i".println(result.length())
-        return 0
+    Int n = 100000
+    Int argc = args.count()
+    if (argc > 0):
+        n = args.getInt(0)
+    StrCatBench bench = StrCatBench.new(n)
+    String result = bench.run()
+    "N: %i".println(n)
+    "Length: %i".println(result.length())
+    return 0

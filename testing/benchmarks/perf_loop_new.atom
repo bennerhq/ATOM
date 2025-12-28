@@ -10,16 +10,30 @@ Bench:
         Int i = 0
         Int acc = 0
         while (i < this.iterations):
-            acc = acc + i
+            acc = toInt32(acc + i)
             if (acc > this.wrap):
-                acc = acc - this.wrap
+                acc = toInt32(acc - this.wrap)
             i = i + 1
         return acc
 
+Int toInt32(Int v):
+    Int mod = 4294967296
+    v = v % mod
+    if (v < 0):
+        v = v + mod
+    if (v > 2147483647):
+        v = v - mod
+    return v
+
 Int main():
-        Int iterations = 100000000
-        Int wrap = 1000000
-        Bench bench = Bench.new()
-        bench.init(iterations, wrap)
-        Int checksum = bench.run()
-        return checksum
+    Int iterations = 100000000
+    Int wrap = 1000000
+    Bench bench = Bench.new()
+    bench.init(iterations, wrap)
+    Int checksum = bench.run()
+
+    "Iterations: %i".println(iterations)
+    "Wrap: %i".println(wrap)
+    "Checksum: %i".println(checksum)
+
+    return 0

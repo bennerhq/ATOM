@@ -8,11 +8,14 @@ MatrixMultBench:
 
     init(Int n):
         this.n = n
-        this.a = Int[n][n]
-        this.b = Int[n][n]
-        this.c = Int[n][n]
+        this.a = Int[n]
+        this.b = Int[n]
+        this.c = Int[n]
         Int i = 0
         while (i < n):
+            this.a[i] = Int[n]
+            this.b[i] = Int[n]
+            this.c[i] = Int[n]
             Int j = 0
             while (j < n):
                 this.a[i][j] = i + j
@@ -35,12 +38,12 @@ MatrixMultBench:
         return this.c[0][0]
 
 Int main(String[] args):
-        Int n = 100
-        Int argc = args.count()
-        if (argc > 0):
-            n = args.getInt(0)
-        MatrixMultBench bench = MatrixMultBench.new(n)
-        Int result = bench.run()
-        "N: %i".println(n)
-        "Result: %i".println(result)
-        return 0
+    Int n = 100
+    Int argc = args.count()
+    if (argc > 0):
+        n = args.getInt(0)
+    MatrixMultBench bench = MatrixMultBench.new(n)
+    Int result = bench.run()
+    "N: %i".println(n)
+    "Result: %i".println(result)
+    return 0

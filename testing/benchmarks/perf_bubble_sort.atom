@@ -27,12 +27,12 @@ BubbleSortBench:
         return arr[0]
 
 Int main(String[] args):
-        Int n = 20000
-        Int argc = args.count()
-        if (argc > 0):
-            n = args.getInt(0)
-        BubbleSortBench bench = BubbleSortBench.new(n)
-        Int result = bench.run()
-        "N: %i".println(n)
-        "First: %i".println(result)
-        return 0
+    Int n = 20000
+    Int argc = args.count()
+    if (argc > 0):
+        n = args.getInt(0)
+    BubbleSortBench bench = BubbleSortBench.new(n)
+    Int result = bench.run()
+    "N: %i".println(n)
+    "First: %i".println(result)
+    return 0

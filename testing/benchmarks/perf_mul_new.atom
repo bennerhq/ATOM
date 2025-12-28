@@ -24,9 +24,12 @@ MulBench:
         return acc
 
 Int main():
-        Int iterations = 100000000
-        Int wrap = 1000000
-        MulBench bench = MulBench.new()
-        bench.init(iterations, wrap)
-        Int checksum = bench.run()
-        return checksum
+    Int iterations = 100000000
+    Int wrap = 1000000
+    MulBench bench = MulBench.new()
+    bench.init(iterations, wrap)
+    Int checksum = bench.run()
+    "Iterations: %i".println(iterations)
+    "Wrap: %i".println(wrap)
+    "Checksum: %i".println(checksum)
+    return 0

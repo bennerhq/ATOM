@@ -1,6 +1,6 @@
 # Atom Project
 
-**All code in this repository is written in Visual Studio Code using Large Language Models (LLMs) for code generation, refactoring, and documentation.**
+**All code in this repository is written by OpemAI's coding Large Language Models (LLM) tool, i.e,, code generation, refactoring, error corretion and documentation.**
 
 ## Project Overview
 

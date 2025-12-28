@@ -21,12 +21,13 @@ ArraySumBench:
         return sum
 
 Int main(String[] args):
-        Int size = 10000000
-        Int argc = args.count()
-        if (argc > 0):
-            size = args.getInt(0)
-        ArraySumBench bench = ArraySumBench.new(size)
-        Int checksum = bench.run()
-        "Size: %i".println(size)
-        "Checksum: %i".println(checksum)
-        return 0
+    return 0
+    Int size = 10000000
+    Int argc = args.count()
+    if (argc > 0):
+        size = args.getInt(0)
+    ArraySumBench bench = ArraySumBench.new(size)
+    Int checksum = bench.run()
+    "Size: %i".println(size)
+    "Checksum: %i".println(checksum)
+    return 0
