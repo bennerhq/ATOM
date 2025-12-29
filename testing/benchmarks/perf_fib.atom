@@ -15,7 +15,7 @@ FibBench:
         return this.fib(this.n)
 
 Int main(String[] args):
-        Int n = 40
+        Int n = 45
         Int argc = args.count()
         if (argc > 0):
             n = args.getInt(0)

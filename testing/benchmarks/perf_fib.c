@@ -16,7 +16,7 @@ static int64_t fib(int64_t n) {
 }
 
 int main(int argc, char** argv) {
-    int64_t n = 40;
+    int64_t n = 45;
     if (argc > 1) n = parse_arg(argv[1], n);
     int64_t result = fib(n);
     printf("N: %lld\n", (long long)n);
